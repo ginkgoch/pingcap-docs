@@ -5,11 +5,12 @@ summary: Google Cloud Private Service Connect を介してTiDB Cloudクラスタ
 
 # Google Cloud Private Service Connect 経由でTiDB Cloud専用クラスタに接続する {#connect-to-a-tidb-cloud-dedicated-cluster-via-google-cloud-private-service-connect}
 
-このドキュメントでは、Google Cloud Private Service Connect を介してTiDB Cloud Dedicated クラスタに接続する方法について説明します。Google Cloud Private Service Connect は、Google Cloud が提供するプライベート エンドポイント サービスです。
+このドキュメントでは、 [プライベートサービスコネクト](https://cloud.google.com/vpc/docs/private-service-connect)を介してTiDB Cloud Dedicated クラスタに接続する方法について説明します。Google Cloud Private Service Connect は、Google Cloud が提供するプライベート エンドポイント サービスです。
 
 > **ヒント：**
 >
-> -   AWS のプライベートエンドポイント経由でTiDB Cloud Dedicated クラスターに接続する方法については、 [AWS のプライベートエンドポイント経由でTiDB Cloud Dedicated に接続する](/tidb-cloud/set-up-private-endpoint-connections.md)参照してください。
+> -   AWS のプライベートエンドポイント経由でTiDB Cloud Dedicated クラスターに接続する方法については、 [AWS PrivateLink 経由でTiDB Cloud専用クラスタに接続する](/tidb-cloud/set-up-private-endpoint-connections.md)参照してください。
+> -   Azure のプライベート エンドポイント経由でTiDB Cloud Dedicated クラスターに接続する方法については、 [Azure Private Link 経由でTiDB Cloud専用クラスタに接続する](/tidb-cloud/set-up-private-endpoint-connections-on-azure.md)参照してください。
 > -   プライベート エンドポイント経由でTiDB Cloud Serverless クラスターに接続する方法については、 [プライベートエンドポイント経由でTiDB Cloud Serverless に接続する](/tidb-cloud/set-up-private-endpoint-connections-serverless.md)参照してください。
 
 TiDB Cloud は、 [プライベートサービスコネクト](https://cloud.google.com/vpc/docs/private-service-connect)を介して Google Cloud VPC でホストされているTiDB Cloudサービスへの、高度に安全な一方向アクセスをサポートしています。エンドポイントを作成し、それを使用してTiDB Cloudサービスに接続できます。
@@ -23,7 +24,7 @@ Google Cloud Private Service Connect のアーキテクチャは次のとおり�
 プライベート エンドポイントとエンドポイント サービスの詳細な定義については、次の Google Cloud ドキュメントをご覧ください。
 
 -   [プライベートサービスコネクト](https://cloud.google.com/vpc/docs/private-service-connect)
--   [エンドポイントを通じて公開されたサービスにアクセスする](https://cloud.google.com/vpc/docs/configure-private-service-connect-services)
+-   [エンドポイントを介して公開されたサービスにアクセスする](https://cloud.google.com/vpc/docs/configure-private-service-connect-services)
 
 ## 制限 {#restrictions}
 
@@ -81,7 +82,7 @@ Google Cloud Private Service Connect のアーキテクチャは次のとおり�
 
 2.  右上隅の**「接続」**をクリックします。接続ダイアログが表示されます。
 
-3.  [**接続タイプ]**ドロップダウン リストで**[プライベート エンドポイント]**を選択し、 **[プライベート エンドポイント接続の作成] を**クリックします。
+3.  [**接続タイプ]**ドロップダウン リストで**[プライベート エンドポイント]**を選択し、 **[プライベート エンドポイント接続の作成]**をクリックします。
 
     > **注記：**
     >

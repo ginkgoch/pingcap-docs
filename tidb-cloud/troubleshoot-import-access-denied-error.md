@@ -48,7 +48,7 @@ TiDB Cloudコンソールの「**データインポート」**ページで**「�
 
 ### IAMロールが存在するかどうかを確認する {#check-whether-the-iam-role-exists}
 
-IAMロールが存在しない場合は、 [Amazon S3 アクセスを構成する](/tidb-cloud/config-s3-and-gcs-access.md#configure-amazon-s3-access)手順に従ってロールを作成します。
+IAMロールが存在しない場合は、 [Amazon S3 アクセスを構成する](/tidb-cloud/dedicated-external-storage.md#configure-amazon-s3-access)手順に従ってロールを作成します。
 
 ### 外部IDが正しく設定されているか確認してください {#check-whether-the-external-id-is-set-correctly}
 
