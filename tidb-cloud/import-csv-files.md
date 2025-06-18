@@ -80,7 +80,7 @@ TiDB Cloud がAmazon S3 バケット、GCS バケット、または Azure Blob S
 
 -   CSV ファイルが Amazon S3 にある場合は、 [Amazon S3 アクセスを構成する](/tidb-cloud/dedicated-external-storage.md#configure-amazon-s3-access) 。
 
-    バケットへのアクセスには、AWS アクセスキーまたはロール ARN のいずれかを使用できます。完了したら、アクセスキー（アクセスキー ID とシークレットアクセスキーを含む）またはロール ARN の値をメモしておいてください。これらは[ステップ4](#step-4-import-csv-files-to-tidb-cloud)で必要になります。
+    バケットにアクセスするには、AWS アクセスキーまたはロール ARN のいずれかを使用できます。完了したら、アクセスキー（アクセスキー ID とシークレットアクセスキーを含む）またはロール ARN の値をメモしておいてください。これらは[ステップ4](#step-4-import-csv-files-to-tidb-cloud)で必要になります。
 
 -   CSV ファイルが GCS にある場合は、 [GCS アクセスを構成する](/tidb-cloud/dedicated-external-storage.md#configure-gcs-access) 。
 
@@ -95,13 +95,13 @@ CSV ファイルをTiDB Cloudにインポートするには、次の手順を実
 
 1.  ターゲット クラスターの**インポート**ページを開きます。
 
-    1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/console/clusters)ページに移動します。
+    1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/project/clusters)ページに移動します。
 
         > **ヒント：**
         >
-        > 複数のプロジェクトがある場合は、<mdsvgicon name="icon-left-projects">左下隅にある をクリックして、別のプロジェクトに切り替えます。</mdsvgicon>
+        > 左上隅のコンボ ボックスを使用して、組織、プロジェクト、クラスターを切り替えることができます。
 
-    2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[インポート]**をクリックします。
+    2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[データ]** &gt; **[インポート]**をクリックします。
 
 2.  **Cloud Storage からデータをインポート**を選択します。
 
@@ -139,13 +139,13 @@ CSV ファイルをTiDB Cloudにインポートするには、次の手順を実
 
 1.  ターゲット クラスターの**インポート**ページを開きます。
 
-    1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/console/clusters)ページに移動します。
+    1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/project/clusters)ページに移動します。
 
         > **ヒント：**
         >
-        > 複数のプロジェクトがある場合は、<mdsvgicon name="icon-left-projects">左下隅にある をクリックして、別のプロジェクトに切り替えます。</mdsvgicon>
+        > 左上隅のコンボ ボックスを使用して、組織、プロジェクト、クラスターを切り替えることができます。
 
-    2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[インポート]**をクリックします。
+    2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[データ]** &gt; **[インポート]**をクリックします。
 
 2.  **Cloud Storage からデータをインポート**を選択します。
 
@@ -180,13 +180,13 @@ CSV ファイルをTiDB Cloudにインポートするには、次の手順を実
 
 1.  ターゲット クラスターの**インポート**ページを開きます。
 
-    1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/console/clusters)ページに移動します。
+    1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/project/clusters)ページに移動します。
 
         > **ヒント：**
         >
-        > 複数のプロジェクトがある場合は、<mdsvgicon name="icon-left-projects">左下隅にある をクリックして、別のプロジェクトに切り替えます。</mdsvgicon>
+        > 左上隅のコンボ ボックスを使用して、組織、プロジェクト、クラスターを切り替えることができます。
 
-    2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[インポート]**をクリックします。
+    2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[データ]** &gt; **[インポート]**をクリックします。
 
 2.  **Cloud Storage からデータをインポート**を選択します。
 

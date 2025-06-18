@@ -37,9 +37,9 @@ Google Cloud でセルフホスト型 Kafka に Private Service Connect を設�
 
 3.  TiDB Cloud Dedicated クラスターから Kafka デプロイメント情報を取得します。
 
-    1.  [TiDB Cloudコンソール](https://tidbcloud.com)で、TiDB クラスターのクラスター概要ページに移動し、左側のナビゲーション ペインで**[Changefeed] を**クリックします。
+    1.  [TiDB Cloudコンソール](https://tidbcloud.com)で[**クラスター**](https://tidbcloud.com/project/clusters)ページに移動し、ターゲット クラスターの名前をクリックして概要ページに移動します。
     2.  概要ページで、TiDB クラスターのリージョンを確認します。Kafka クラスターが同じリージョンにデプロイされることを確認してください。
-    3.  **「Changefeed の作成」を**クリックします。
+    3.  左側のナビゲーション ペインで**[データ]** &gt; **[Changefeed] を**クリックし、右上隅の**[Changefeed の作成]**をクリックして、次の情報を入力します。
         1.  **宛先**で、 **Kafka**を選択します。
         2.  **[接続方法]**で、 **[プライベート サービス接続]**を選択します。
     4.  **先に進む前に、Google Cloud プロジェクトをリマインダー**に書き留めておいてください。このプロジェクトは、 TiDB Cloudからのエンドポイント作成リクエストの自動承認を承認するために使用します。
@@ -73,7 +73,7 @@ PSCポートマッピングメカニズムを使用して、各Kafkaブローカ
 
 #### 新しいKafkaクラスターをデプロイ {#deploy-a-new-kafka-cluster}
 
-**1. Kafka VPC を設定する**
+**1. Kafka VPC をセットアップする**
 
 Kafka クラスターを簡単に構成できるように、Kafka VPC 用に 2 つのサブネット (1 つは Kafka ブローカー用、もう 1 つは要塞ノード用) を作成する必要があります。
 

@@ -29,11 +29,11 @@ Prometheus サービスがTiDB Cloudのメトリクスを読み取るように�
 
 Prometheus の`scrape_config`ファイルを取得するには、次の手順を実行します。
 
-1.  [TiDB Cloudコンソール](https://tidbcloud.com)にログインします。
+1.  [TiDB Cloudコンソール](https://tidbcloud.com)で、左上隅のコンボ ボックスを使用してターゲット プロジェクトに切り替えます。
 
-2.  クリック<mdsvgicon name="icon-left-projects">左下隅で、複数のプロジェクトがある場合は対象のプロジェクトに切り替えて、 **[プロジェクト設定] を**クリックします。</mdsvgicon>
+2.  左側のナビゲーション ペインで、 **[プロジェクト設定]** &gt; **[統合]**をクリックします。
 
-3.  プロジェクトの**「プロジェクト設定」**ページで、左側のナビゲーション ペインの**「統合」**をクリックし、 **「Prometheus への統合 (ベータ版)」**をクリックします。
+3.  **「統合」**ページで、 **「Prometheus への統合 (ベータ版)」**をクリックします。
 
 4.  **「ファイルの追加」を**クリックすると、現在のプロジェクトの scrape_config ファイルを生成して表示します。
 
@@ -98,7 +98,7 @@ Prometheus は、TiDB クラスターの次のメトリック データを追跡
 | tidbcloud_node_memory_used_bytes                            | ゲージ      | クラスター名: `<cluster name>`<br/>インスタンス: `tidb-0\|tidb-1…\|tikv-0…\|tiflash-0…`<br/>コンポーネント: `tidb\|tikv\|tiflash`               | TiDB/TiKV/ TiFlashノードの使用メモリバイト                                                                                        |
 | tidbcloud_node_memory_capacity_bytes                        | ゲージ      | クラスター名: `<cluster name>`<br/>インスタンス: `tidb-0\|tidb-1…\|tikv-0…\|tiflash-0…`<br/>コンポーネント: `tidb\|tikv\|tiflash`               | TiDB/TiKV/ TiFlashノードのメモリ容量バイト                                                                                        |
 | tidbcloud_node_storage_available_bytes                      | ゲージ      | インスタンス: `tidb-0\|tidb-1\|...`<br/>コンポーネント: `tikv\|tiflash`<br/>クラスター名: `<cluster name>`                                      | TiKV/ TiFlashノードで使用可能なディスク容量（バイト単位）                                                                                   |
-| tidbcloud_disk_read_latency                                 | ヒストグラム   | インスタンス: `tidb-0\|tidb-1\|...`<br/>コンポーネント: `tikv\|tiflash`<br/>クラスター名: `<cluster name>`<br/> `device`時`nvme.*\|dm.*`         | storageデバイスあたりの読み取りレイテンシー（秒）                                                                                          |
+| tidbcloud_disk_read_latency                                 | ヒストグラム   | インスタンス: `tidb-0\|tidb-1\|...`<br/>コンポーネント: `tikv\|tiflash`<br/>クラスター名: `<cluster name>`<br/> `device`時`nvme.*\|dm.*`         | storageあたりの読み取りレイテンシー（秒）                                                                                              |
 | tidbcloud_disk_write_latency                                | ヒストグラム   | インスタンス: `tidb-0\|tidb-1\|...`<br/>コンポーネント: `tikv\|tiflash`<br/>クラスター名: `<cluster name>`<br/> `device`時`nvme.*\|dm.*`         | storageデバイスあたりの書き込みレイテンシー（秒）                                                                                          |
 | tidbcloud_kv_request_duration                               | ヒストグラム   | インスタンス: `tidb-0\|tidb-1\|...`<br/>コンポーネント: `tikv`<br/>クラスター名: `<cluster name>`<br/> `type`時`BatchGet\|Commit\|Prewrite\|...` | タイプ別の TiKV リクエストの継続時間（秒）                                                                                              |
 | tidbcloud_component_uptime                                  | ヒストグラム   | インスタンス: `tidb-0\|tidb-1\|...`<br/>コンポーネント: `tidb\|tikv\|pd\|...`<br/>クラスター名: `<cluster name>`                                | TiDBコンポーネントの稼働時間（秒）                                                                                                   |

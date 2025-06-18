@@ -120,15 +120,15 @@ SHOW VARIABLES LIKE 'binlog_row_image';
 
     結果が`ON`または`ON_PERMISSIVE`場合、 GTID モードは正常に有効化されています。
 
-## ステップ1:<strong>データ移行</strong>ページに移動します {#step-1-go-to-the-strong-data-migration-strong-page}
+## ステップ1: データ移行ページに移動します {#step-1-go-to-the-data-migration-page}
 
-1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/console/clusters)ページに移動します。
+1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/project/clusters)ページに移動します。
 
     > **ヒント：**
     >
-    > 複数のプロジェクトがある場合は、<mdsvgicon name="icon-left-projects">左下隅にある をクリックして、別のプロジェクトに切り替えます。</mdsvgicon>
+    > 左上隅のコンボ ボックスを使用して、組織、プロジェクト、クラスターを切り替えることができます。
 
-2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[データ移行]**をクリックします。
+2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[データ]** &gt; **[移行]**をクリックします。
 
 3.  **「データ移行」**ページで、右上隅の**「移行ジョブの作成」を**クリックします。 **「移行ジョブの作成」**ページが表示されます。
 
@@ -237,6 +237,6 @@ SHOW MASTER STATUS;
 
 移行ジョブが失敗した場合は、問題を解決してから再開できます。
 
-どのステータスでも移行ジョブを削除できます。
+移行ジョブはどのステータスでも削除できます。
 
 移行中に問題が発生した場合は、 [移行エラーと解決策](/tidb-cloud/tidb-cloud-dm-precheck-and-troubleshooting.md#migration-errors-and-solutions)参照してください。
