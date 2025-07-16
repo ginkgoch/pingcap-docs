@@ -1,17 +1,17 @@
 ---
 title: SHOW CREATE RESOURCE GROUP
-summary: TiDB での SHOW CREATE RESOURCE GROUP の使用方法を学習します。
+summary: Learn the usage of SHOW CREATE RESOURCE GROUP in TiDB.
 ---
 
-# リソースグループの作成を表示 {#show-create-resource-group}
+# SHOW CREATE RESOURCE GROUP {#show-create-resource-group}
 
-`SHOW CREATE RESOURCE GROUP`ステートメントを使用して、リソース グループの現在の定義を表示できます。
+You can use the `SHOW CREATE RESOURCE GROUP` statement to view the current definition of a resource group.
 
-> **注記：**
+> **Note:**
 >
-> この機能は[TiDB Cloudサーバーレス](https://docs.pingcap.com/tidbcloud/select-cluster-tier#tidb-cloud-serverless)クラスターでは使用できません。
+> This feature is not available on [{{{ .starter }}}](https://docs.pingcap.com/tidbcloud/select-cluster-tier#tidb-cloud-serverless) clusters.
 
-## 概要 {#synopsis}
+## Synopsis {#synopsis}
 
 ```ebnf+diagram
 ShowCreateResourceGroupStmt ::=
@@ -22,16 +22,16 @@ ResourceGroupName ::=
 |   "DEFAULT"
 ```
 
-## 例 {#examples}
+## Examples {#examples}
 
-リソース グループ`rg1`を作成します。
+Create a resource group `rg1`.
 
 ```sql
 CREATE RESOURCE GROUP rg1 RU_PER_SEC=100;
 Query OK, 0 rows affected (0.10 sec)
 ```
 
-`rg1`の定義をビュー。
+View the definition of `rg1`.
 
 ```sql
 SHOW CREATE RESOURCE GROUP rg1;
@@ -44,13 +44,13 @@ SHOW CREATE RESOURCE GROUP rg1;
 1 row in set (0.01 sec)
 ```
 
-## MySQL 互換性 {#mysql-compatibility}
+## MySQL compatibility {#mysql-compatibility}
 
-このステートメントは、MySQL の TiDB 拡張機能です。
+This statement is a TiDB extension for MySQL.
 
-## 参照 {#see-also}
+## See also {#see-also}
 
--   [TiDB リソース制御](/tidb-resource-control.md)
--   [リソースグループの作成](/sql-statements/sql-statement-alter-resource-group.md)
--   [リソースグループの変更](/sql-statements/sql-statement-alter-resource-group.md)
--   [リソースグループを削除](/sql-statements/sql-statement-drop-resource-group.md)
+-   [TiDB RESOURCE CONTROL](/tidb-resource-control.md)
+-   [CREATE RESOURCE GROUP](/sql-statements/sql-statement-alter-resource-group.md)
+-   [ALTER RESOURCE GROUP](/sql-statements/sql-statement-alter-resource-group.md)
+-   [DROP RESOURCE GROUP](/sql-statements/sql-statement-drop-resource-group.md)

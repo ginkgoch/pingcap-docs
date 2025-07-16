@@ -1,91 +1,91 @@
 ---
 title: CRUD SQL in TiDB
-summary: TiDB の CRUD SQL の簡単な紹介。
+summary: A brief introduction to TiDB's CRUD SQL.
 ---
 
-# TiDB の CRUD SQL {#crud-sql-in-tidb}
+# CRUD SQL in TiDB {#crud-sql-in-tidb}
 
-このドキュメントでは、TiDB の CRUD SQL の使用方法を簡単に紹介します。
+This document briefly introduces how to use TiDB's CRUD SQL.
 
-## 始める前に {#before-you-start}
+## Before you start {#before-you-start}
 
-TiDB クラスターに接続していることを確認してください。接続していない場合は、 [TiDB Cloudサーバーレスクラスタを構築する](/develop/dev-guide-build-cluster-in-cloud.md#step-1-create-a-tidb-cloud-serverless-cluster)を参照してTiDB Cloud Serverless クラスターを作成してください。
+Please make sure you are connected to a TiDB cluster. If not, refer to [Build a {{{ .starter }}} Cluster](/develop/dev-guide-build-cluster-in-cloud.md#step-1-create-a-tidb-cloud-cluster) to create a {{{ .starter }}} cluster.
 
-## TiDB で SQL を探索する {#explore-sql-with-tidb}
+## Explore SQL with TiDB {#explore-sql-with-tidb}
 
-> **注記：**
+> **Note:**
 >
-> この文書では[TiDB で SQL を探索する](/basic-sql-operations.md)参照して簡略化しています。詳細については[TiDB で SQL を探索する](/basic-sql-operations.md)参照してください。
+> This document references and simplifies [Explore SQL with TiDB](/basic-sql-operations.md). For more details, see [Explore SQL with TiDB](/basic-sql-operations.md).
 
-TiDB は MySQL と互換性があり、ほとんどの場合 MySQL ステートメントを直接使用できます。サポートされていない機能については、 [MySQLとの互換性](/mysql-compatibility.md#unsupported-features)参照してください。
+TiDB is compatible with MySQL, you can use MySQL statements directly in most cases. For unsupported features, see [Compatibility with MySQL](/mysql-compatibility.md#unsupported-features).
 
-SQL を試して、MySQL クエリと TiDB の互換性をテストするには、 [TiDB プレイグラウンド](https://play.tidbcloud.com/?utm_source=docs&#x26;utm_medium=basic-sql-operations)試すことができます。また、最初に TiDB クラスターをデプロイし、その中で SQL ステートメントを実行することもできます。
+To experiment with SQL and test out TiDB compatibility with MySQL queries, you can try [TiDB Playground](https://play.tidbcloud.com/?utm_source=docs&#x26;utm_medium=basic-sql-operations). You can also first deploy a TiDB cluster and then run SQL statements in it.
 
-このページでは、DDL、DML、CRUD 操作などの基本的なTiDB SQLステートメントについて説明します。TiDB ステートメントの完全なリストについては、 [SQL ステートメントの概要](/sql-statements/sql-statement-overview.md)参照してください。
+This page walks you through the basic TiDB SQL statements such as DDL, DML, and CRUD operations. For a complete list of TiDB statements, see [SQL Statement Overview](/sql-statements/sql-statement-overview.md).
 
-## カテゴリ {#category}
+## Category {#category}
 
-SQL は関数に応じて次の 4 つのタイプに分けられます。
+SQL is divided into the following 4 types according to their functions:
 
--   **DDL (データ定義言語)** : データベース、テーブル、ビュー、インデックスなどのデータベース オブジェクトを定義するために使用されます。
+-   **DDL (Data Definition Language)**: It is used to define database objects, including databases, tables, views, and indexes.
 
--   **DML (データ操作言語)** : アプリケーション関連のレコードを操作するために使用されます。
+-   **DML (Data Manipulation Language)**: It is used to manipulate application related records.
 
--   **DQL (データ クエリ言語)** : 条件付きフィルタリング後にレコードをクエリするために使用されます。
+-   **DQL (Data Query Language)**: It is used to query the records after conditional filtering.
 
--   **DCL (データ制御言語)** : アクセス権限とセキュリティ レベルを定義するために使用されます。
+-   **DCL (Data Control Language)**: It is used to define access privileges and security levels.
 
-以下では主にDMLとDQLについて紹介します。DDLとDCLの詳細については[TiDB で SQL を探索する](/basic-sql-operations.md)または[SQL ステートメントの概要](/sql-statements/sql-statement-overview.md)参照してください。
+The following mainly introduces DML and DQL. For more information about DDL and DCL, see [Explore SQL with TiDB](/basic-sql-operations.md) or [SQL Statement Overview](/sql-statements/sql-statement-overview.md).
 
-## データ操作言語 {#data-manipulation-language}
+## Data Manipulation Language {#data-manipulation-language}
 
-一般的な DML 機能は、テーブル レコードの追加、変更、および削除です。対応するコマンドは`INSERT` 、 `UPDATE` 、および`DELETE`です。
+Common DML features are adding, modifying, and deleting table records. The corresponding commands are `INSERT`, `UPDATE`, and `DELETE`.
 
-テーブルにデータを挿入するには、 `INSERT`ステートメントを使用します。
+To insert data into a table, use the `INSERT` statement:
 
 ```sql
 INSERT INTO person VALUES(1,'tom','20170912');
 ```
 
-いくつかのフィールドのデータを含むレコードをテーブルに挿入するには、次の`INSERT`ステートメントを使用します。
+To insert a record containing data of some fields into a table, use the `INSERT` statement:
 
 ```sql
 INSERT INTO person(id,name) VALUES('2','bob');
 ```
 
-テーブル内のレコードの一部のフィールドを更新するには、 `UPDATE`ステートメントを使用します。
+To update some fields of a record in a table, use the `UPDATE` statement:
 
 ```sql
 UPDATE person SET birthday='20180808' WHERE id=2;
 ```
 
-テーブル内のデータを削除するには、次の`DELETE`ステートメントを使用します。
+To delete the data in a table, use the `DELETE` statement:
 
 ```sql
 DELETE FROM person WHERE id=2;
 ```
 
-> **注記：**
+> **Note:**
 >
-> フィルターとして`WHERE`節を使用しない`UPDATE`および`DELETE`ステートメントは、テーブル全体に対して動作します。
+> The `UPDATE` and `DELETE` statements without the `WHERE` clause as a filter operate on the entire table.
 
-## データクエリ言語 {#data-query-language}
+## Data Query Language {#data-query-language}
 
-DQL は、1 つまたは複数のテーブルから必要なデータ行を取得するために使用されます。
+DQL is used to retrieve the desired data rows from a table or multiple tables.
 
-テーブル内のデータを表示するには、 `SELECT`ステートメントを使用します。
+To view the data in a table, use the `SELECT` statement:
 
 ```sql
 SELECT * FROM person;
 ```
 
-特定の列をクエリするには、 `SELECT`キーワードの後に列名を追加します。
+To query a specific column, add the column name after the `SELECT` keyword:
 
 ```sql
 SELECT name FROM person;
 ```
 
-結果は以下のようになります。
+The result is as follows:
 
     +------+
     | name |
@@ -94,22 +94,22 @@ SELECT name FROM person;
     +------+
     1 rows in set (0.00 sec)
 
-`WHERE`句を使用して、条件に一致するすべてのレコードをフィルタリングし、結果を返します。
+Use the `WHERE` clause to filter all records that match the conditions and then return the result:
 
 ```sql
 SELECT * FROM person WHERE id < 5;
 ```
 
-## ヘルプが必要ですか? {#need-help}
+## Need help? {#need-help}
 
 <CustomContent platform="tidb">
 
-[不和](https://discord.gg/DQZ2dy3cuc?utm_source=doc)または[スラック](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs) 、または[サポートチケットを送信する](/support.md)についてコミュニティに質問してください。
+Ask the community on [Discord](https://discord.gg/DQZ2dy3cuc?utm_source=doc) or [Slack](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs), or [submit a support ticket](/support.md).
 
 </CustomContent>
 
 <CustomContent platform="tidb-cloud">
 
-[不和](https://discord.gg/DQZ2dy3cuc?utm_source=doc)または[スラック](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs) 、または[サポートチケットを送信する](https://tidb.support.pingcap.com/)についてコミュニティに質問してください。
+Ask the community on [Discord](https://discord.gg/DQZ2dy3cuc?utm_source=doc) or [Slack](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs), or [submit a support ticket](https://tidb.support.pingcap.com/).
 
 </CustomContent>

@@ -1,31 +1,35 @@
 ---
-title: Use Cluster Resource
-summary: クラスター リソースを使用してTiDB Cloudクラスターを作成および変更する方法を学習します。
+title: Use Cluster Resource (Deprecated)
+summary: Learn how to use the cluster resource to create and modify a TiDB Cloud cluster.
 ---
 
-# クラスタリソースの使用 {#use-cluster-resource}
+# Use Cluster Resource (Deprecated) {#use-cluster-resource-deprecated}
 
-このドキュメントでは、 `tidbcloud_cluster`リソースを使用してTiDB Cloudクラスターを管理する方法を学習できます。
+> **Warning:**
+>
+> Starting from [TiDB Cloud Terraform Provider](https://registry.terraform.io/providers/tidbcloud/tidbcloud) v0.4.0, the `tidbcloud_cluster` resource is deprecated. It is recommended to use the `tidbcloud_dedicated_cluster` or `tidbcloud_serverless_cluster` resource instead. For more information, see [Use TiDB Cloud Dedicated Cluster Resource](/tidb-cloud/terraform-use-dedicated-cluster-resource.md) or [Use TiDB Cloud Serverless Cluster Resource](/tidb-cloud/terraform-use-serverless-cluster-resource.md).
 
-さらに、データ ソース`tidbcloud_projects`と`tidbcloud_cluster_specs`使用して必要な情報を取得する方法も学習します。
+You can learn how to manage a TiDB Cloud cluster with the `tidbcloud_cluster` resource in this document.
 
-`tidbcloud_cluster`リソースの機能は次のとおりです。
+In addition, you will also learn how to get the necessary information with the `tidbcloud_projects` and `tidbcloud_cluster_specs` data sources.
 
--   TiDB Cloud Serverless クラスターとTiDB Cloud Dedicated クラスターを作成します。
--   TiDB Cloud Dedicated クラスターを変更します。
--   TiDB Cloud Serverless クラスターとTiDB Cloud Dedicated クラスターを削除します。
+The features of the `tidbcloud_cluster` resource include the following:
 
-## 前提条件 {#prerequisites}
+-   Create TiDB Cloud Serverless and TiDB Cloud Dedicated clusters.
+-   Modify TiDB Cloud Dedicated clusters.
+-   Delete TiDB Cloud Serverless and TiDB Cloud Dedicated clusters.
 
--   [TiDB Cloud Terraform プロバイダーを入手](/tidb-cloud/terraform-get-tidbcloud-provider.md) 。
+## Prerequisites {#prerequisites}
 
-## <code>tidbcloud_projects</code>データソースを使用してプロジェクト ID を取得する {#get-project-ids-using-the-code-tidbcloud-projects-code-data-source}
+-   [Get TiDB Cloud Terraform Provider](/tidb-cloud/terraform-get-tidbcloud-provider.md).
 
-各 TiDB クラスターはプロジェクト内にあります。TiDB クラスターを作成する前に、クラスターを作成するプロジェクトの ID を取得する必要があります。
+## Get project IDs using the <code>tidbcloud_projects</code> data source {#get-project-ids-using-the-code-tidbcloud-projects-code-data-source}
 
-利用可能なすべてのプロジェクトの情報を表示するには、次のように`tidbcloud_projects`データ ソースを使用します。
+Each TiDB cluster is in a project. Before you create a TiDB cluster, you need to get the ID of the project in which you want to create a cluster.
 
-1.  [TiDB Cloud Terraform プロバイダーを入手](/tidb-cloud/terraform-get-tidbcloud-provider.md)実行すると作成される`main.tf`ファイルに、次のように`data`ブロックと`output`ブロックを追加します。
+To view the information of all available projects, you can use the `tidbcloud_projects` data source as follows:
+
+1.  In the `main.tf` file that is created when you [Get TiDB Cloud Terraform Provider](/tidb-cloud/terraform-get-tidbcloud-provider.md), add the `data` and `output` blocks as follows:
 
         terraform {
           required_providers {
@@ -50,21 +54,21 @@ summary: クラスター リソースを使用してTiDB Cloudクラスターを
           value = data.tidbcloud_projects.example_project.items
         }
 
-    -   `data`ブロックを使用して、データ ソース タイプやデータ ソース名など、 TiDB Cloudのデータ ソースを定義します。
+    -   Use the `data` block to define the data source of TiDB Cloud, including the data source type and the data source name.
 
-        -   プロジェクト データ ソースを使用するには、データ ソース タイプを`tidbcloud_projects`に設定します。
-        -   データ ソース名は、必要に応じて定義できます。たとえば、「example_project」などです。
-        -   `tidbcloud_projects`データ ソースの場合、 `page`および`page_size`属性を使用して、チェックするプロジェクトの最大数を制限できます。
+        -   To use the projects data source, set the data source type as `tidbcloud_projects`.
+        -   For the data source name, you can define it according to your need. For example, "example_project".
+        -   For the `tidbcloud_projects` data source, you can use the `page` and `page_size` attributes to limit the maximum number of projects you want to check.
 
-    -   `output`ブロックを使用して、出力に表示されるデータ ソース情報を定義し、他の Terraform 構成が使用できるように情報を公開します。
+    -   Use the `output` block to define the data source information to be displayed in the output, and expose the information for other Terraform configurations to use.
 
-        `output`ブロックは、プログラミング言語の戻り値と同様に機能します。詳細については、 [Terraform ドキュメント](https://www.terraform.io/language/values/outputs)参照してください。
+        The `output` block works similarly to returned values in programming languages. See [Terraform documentation](https://www.terraform.io/language/values/outputs) for more details.
 
-    リソースとデータ ソースの利用可能なすべての構成を取得するには、こちら[構成ドキュメント](https://registry.terraform.io/providers/tidbcloud/tidbcloud/latest/docs)参照してください。
+    To get all the available configurations for the resources and data sources, see this [configuration documentation](https://registry.terraform.io/providers/tidbcloud/tidbcloud/latest/docs).
 
-2.  設定を適用するには、 `terraform apply`コマンドを実行します。続行するには、確認プロンプトで`yes`と入力する必要があります。
+2.  Run the `terraform apply` command to apply the configurations. You need to type `yes` at the confirmation prompt to proceed.
 
-    プロンプトをスキップするには、 `terraform apply --auto-approve`使用します。
+    To skip the prompt, use `terraform apply --auto-approve`:
 
         $ terraform apply --auto-approve
 
@@ -113,15 +117,15 @@ summary: クラスター リソースを使用してTiDB Cloudクラスターを
           },
         ])
 
-これで、出力から利用可能なすべてのプロジェクトを取得できます。必要なプロジェクト ID の 1 つをコピーします。
+Now, you can get all the available projects from the output. Copy one of the project IDs that you need.
 
-## <code>tidbcloud_cluster_specs</code>データ ソースを使用してクラスター仕様情報を取得します。 {#get-cluster-specification-information-using-the-code-tidbcloud-cluster-specs-code-data-source}
+## Get cluster specification information using the <code>tidbcloud_cluster_specs</code> data source {#get-cluster-specification-information-using-the-code-tidbcloud-cluster-specs-code-data-source}
 
-クラスターを作成する前に、使用可能なすべての構成値 (サポートされているクラウド プロバイダー、リージョン、ノード サイズなど) が含まれるクラスター仕様情報を取得する必要があります。
+Before you create a cluster, you need to get the cluster specification information, which contains all available configuration values (such as supported cloud providers, regions, and node sizes).
 
-クラスター仕様情報を取得するには、次のように`tidbcloud_cluster_specs`データ ソースを使用できます。
+To get the cluster specification information, you can use the `tidbcloud_cluster_specs` data source as follows:
 
-1.  `main.tf`ファイルを次のように編集します。
+1.  Edit the `main.tf` file as follows:
 
         terraform {
           required_providers {
@@ -141,11 +145,12 @@ summary: クラスター リソースを使用してTiDB Cloudクラスターを
           value = data.tidbcloud_cluster_specs.example_cluster_spec.items
         }
 
-2.  `terraform apply --auto-approve`コマンドを実行すると、クラスターの仕様情報が取得されます。
+2.  Run the `terraform apply --auto-approve` command and you will get the cluster specification information.
 
-    次の行をクリックすると、参考用の例の結果の一部が表示されます。
+    Click the following line to get a part of the example results for your reference.
 
-    <details><summary>クラスタ仕様</summary>
+    <details>
+       <summary>Cluster specification</summary>
 
         {
             "cloud_provider" = "AWS"
@@ -248,27 +253,27 @@ summary: クラスター リソースを使用してTiDB Cloudクラスターを
 
     </details>
 
-結果は次のとおりです。
+In the results:
 
--   `cloud_provider` TiDB クラスターをホストできるクラウド プロバイダーです。
--   `region` `cloud_provider`の領域です。
--   `node_quantity_range`最小ノード数とノードをスケーリングするステップを示します。
--   `node_size`ノードのサイズです。
--   `storage_size_gib_range`ノードに設定できる最小および最大のstorageサイズを示します。
+-   `cloud_provider` is the cloud provider on which a TiDB cluster can be hosted.
+-   `region` is the region of `cloud_provider`.
+-   `node_quantity_range` shows the minimum node number and the step to scale a node.
+-   `node_size` is the size of a node.
+-   `storage_size_gib_range` shows the minimum and maximum storage size you can set for a node.
 
-## クラスターリソースを使用してクラスターを作成する {#create-a-cluster-using-the-cluster-resource}
+## Create a cluster using the cluster resource {#create-a-cluster-using-the-cluster-resource}
 
-> **注記：**
+> **Note:**
 >
-> 始める前に、 TiDB Cloudコンソールで CIDR が設定されていることを確認してください。詳細については、 [CIDRを設定する](/tidb-cloud/set-up-vpc-peering-connections.md#prerequisite-set-a-cidr-for-a-region)参照してください。
+> Before you begin, make sure that you have set a CIDR in the TiDB Cloud console. For more information, see [Set a CIDR](/tidb-cloud/set-up-vpc-peering-connections.md#prerequisite-set-a-cidr-for-a-region).
 
-`tidbcloud_cluster`リソースを使用してクラスターを作成できます。
+You can create a cluster using the `tidbcloud_cluster` resource.
 
-次の例は、 TiDB Cloud Dedicated クラスターを作成する方法を示しています。
+The following example shows how to create a TiDB Cloud Dedicated cluster.
 
-1.  クラスターのディレクトリを作成してそこに入ります。
+1.  Create a directory for the cluster and enter it.
 
-2.  `cluster.tf`ファイルを作成します。
+2.  Create a `cluster.tf` file:
 
         terraform {
          required_providers {
@@ -307,13 +312,13 @@ summary: クラスター リソースを使用してTiDB Cloudクラスターを
           }
         }
 
-    `resource`ブロックを使用して、リソース タイプ、リソース名、リソースの詳細など、 TiDB Cloudのリソースを定義します。
+    Use the `resource` block to define the resource of TiDB Cloud, including the resource type, resource name, and resource details.
 
-    -   クラスター リソースを使用するには、リソース タイプを`tidbcloud_cluster`に設定します。
-    -   リソース名は、必要に応じて定義できます。たとえば、 `example_cluster`です。
-    -   リソースの詳細については、プロジェクト ID とクラスター仕様情報に従って設定できます。
+    -   To use the cluster resource, set the resource type as `tidbcloud_cluster`.
+    -   For the resource name, you can define it according to your need. For example, `example_cluster`.
+    -   For the resource details, you can configure them according to the Project ID and the cluster specification information.
 
-3.  `terraform apply`コマンドを実行します。リソースを適用するときに`terraform apply --auto-approve`使用することはお勧めしません。
+3.  Run the `terraform apply` command. It is not recommended to use `terraform apply --auto-approve` when you apply a resource.
 
     ```shell
     $ terraform apply
@@ -361,13 +366,13 @@ summary: クラスター リソースを使用してTiDB Cloudクラスターを
       Enter a value:
     ```
 
-    上記の結果のように、Terraform は実行プランを生成します。このプランには、Terraform が実行するアクションが記述されています。
+    As in the above result, Terraform generates an execution plan for you, which describes the actions Terraform will take:
 
-    -   設定と状態の違いを確認できます。
-    -   この`apply`の結果も確認できます。新しいリソースが追加され、リソースは変更または破棄されません。
-    -   `known after apply`は、 `apply`後の値が取得されることを示します。
+    -   You can check the difference between the configurations and the states.
+    -   You can also see the results of this `apply`. It will add a new resource, and no resource will be changed or destroyed.
+    -   The `known after apply` shows that you will get the value after `apply`.
 
-4.  計画の内容がすべて問題ない場合は、 `yes`と入力して続行します。
+4.  If everything in your plan looks fine, type `yes` to continue:
 
     ```
     Do you want to perform these actions?
@@ -383,7 +388,7 @@ summary: クラスター リソースを使用してTiDB Cloudクラスターを
 
     ```
 
-5.  `terraform show`または`terraform state show tidbcloud_cluster.${resource-name}`コマンドを使用して、リソースの状態を調べます。前者は、すべてのリソースとデータ ソースの状態を表示します。
+5.  Use the `terraform show` or `terraform state show tidbcloud_cluster.${resource-name}` command to inspect the state of your resource. The former will show the states of all resources and data sources.
 
     ```shell
     $ terraform state show tidbcloud_cluster.example_cluster
@@ -418,9 +423,9 @@ summary: クラスター リソースを使用してTiDB Cloudクラスターを
     }
     ```
 
-    クラスターのステータスは`CREATING`です。この場合、 `AVAILABLE`に変わるまで待つ必要があります。これには通常、少なくとも 10 分かかります。
+    The status of the cluster is `CREATING`. In this case, you need to wait until it changes to `AVAILABLE`, which usually takes 10 minutes at least.
 
-6.  最新の状態を確認したい場合は、 `terraform refresh`コマンドを実行して状態を更新し、 `terraform state show tidbcloud_cluster.${resource-name}`コマンドを実行して状態を表示します。
+6.  If you want to check the latest status, run the `terraform refresh` command to update the state, and then run the `terraform state show tidbcloud_cluster.${resource-name}` command to display the state.
 
         $ terraform refresh
 
@@ -457,21 +462,21 @@ summary: クラスター リソースを使用してTiDB Cloudクラスターを
             status         = "AVAILABLE"
         }
 
-ステータスが`AVAILABLE`の場合、TiDB クラスターが作成され、使用できる状態であることを示します。
+When the status is `AVAILABLE`, it indicates that your TiDB cluster is created and ready for use.
 
-## TiDB Cloud Dedicated クラスターを変更する {#modify-a-tidb-cloud-dedicated-cluster}
+## Modify a TiDB Cloud Dedicated cluster {#modify-a-tidb-cloud-dedicated-cluster}
 
-TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次のようにクラスター リソースを管理できます。
+For a TiDB Cloud Dedicated cluster, you can use Terraform to manage cluster resources as follows:
 
--   クラスターにTiFlashコンポーネントを追加します。
--   クラスターをスケーリングします。
--   クラスターを一時停止または再開します。
+-   Add a TiFlash component to the cluster.
+-   Scale the cluster.
+-   Pause or resume the cluster.
 
-### TiFlashコンポーネントを追加する {#add-a-tiflash-component}
+### Add a TiFlash component {#add-a-tiflash-component}
 
-1.  [クラスターを作成する](#create-a-cluster-using-the-cluster-resource)実行するときに使用する`cluster.tf`ファイルで、 `tiflash`構成を`components`フィールドに追加します。
+1.  In the `cluster.tf` file that is used when you [create the cluster](#create-a-cluster-using-the-cluster-resource), add the `tiflash` configurations to the `components` field.
 
-    例えば：
+    For example:
 
             components = {
               tidb = {
@@ -490,7 +495,7 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
               }
             }
 
-2.  `terraform apply`コマンドを実行します。
+2.  Run the `terraform apply` command:
 
     ```
     $ terraform apply
@@ -531,9 +536,9 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
 
     ```
 
-    上記の実行プランのように、 TiFlashが追加され、リソースが 1 つ変更されます。
+    As in the above execution plan, TiFlash will be added, and one resource will be changed.
 
-3.  計画の内容がすべて問題ない場合は、 `yes`と入力して続行します。
+3.  If everything in your plan looks fine, type `yes` to continue:
 
           Enter a value: yes
 
@@ -542,7 +547,7 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
 
         Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
 
-4.  ステータスを確認するには`terraform state show tidbcloud_cluster.${resource-name}`使用します。
+4.  Use `terraform state show tidbcloud_cluster.${resource-name}` to see the status:
 
         $ terraform state show tidbcloud_cluster.example_cluster
 
@@ -580,15 +585,15 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
             status         = "MODIFYING"
         }
 
-ステータス`MODIFYING`は、クラスターが現在変更中であることを示します。しばらくお待ちください。ステータスは`AVAILABLE`に変更されます。
+The `MODIFYING` status indicates that the cluster is changing now. Wait for a moment. The status will be changed to `AVAILABLE`.
 
-### TiDB クラスターをスケールする {#scale-a-tidb-cluster}
+### Scale a TiDB cluster {#scale-a-tidb-cluster}
 
-ステータスが`AVAILABLE`場合、TiDB クラスターをスケーリングできます。
+You can scale a TiDB cluster when its status is `AVAILABLE`.
 
-1.  [クラスターを作成する](#create-a-cluster-using-the-cluster-resource)ときに使用する`cluster.tf`ファイルで、 `components`の構成を編集します。
+1.  In the `cluster.tf` file that is used when you [create the cluster](#create-a-cluster-using-the-cluster-resource), edit the `components` configurations.
 
-    たとえば、 TiDB 用にさらに 1 つのノード、 TiKV 用にさらに 3 つのノード (TiKV ノードの数は、ステップが 3 であるため 3 の倍数である必要があります。 [クラスタ仕様からこの情報を取得します](#get-cluster-specification-information-using-the-tidbcloud_cluster_specs-data-source)することができます)、 TiFlash用にさらに 1 つのノードを追加するには、次のように構成を編集します。
+    For example, to add one more node for TiDB, 3 more nodes for TiKV (The number of TiKV nodes needs to be a multiple of 3 for its step is 3. You can [get this information from the cluster specification](#get-cluster-specification-information-using-the-tidbcloud_cluster_specs-data-source)), and one more node for TiFlash, you can edit the configurations as follows:
 
             components = {
               tidb = {
@@ -607,7 +612,7 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
               }
             }
 
-2.  `terraform apply`コマンドを実行し、確認のために`yes`と入力します。
+2.  Run the `terraform apply` command and type `yes` for confirmation:
 
         $ terraform apply
 
@@ -656,16 +661,16 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
 
         Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
 
-ステータスが`MODIFYING`から`AVAILABLE`に変わるまで待ちます。
+Wait for the status to turn from `MODIFYING` to `AVAILABLE`.
 
-### クラスターを一時停止または再開する {#pause-or-resume-a-cluster}
+### Pause or resume a cluster {#pause-or-resume-a-cluster}
 
-ステータスが`AVAILABLE`ときにクラスターを一時停止し、ステータスが`PAUSED`ときにクラスターを再開できます。
+You can pause a cluster when its status is `AVAILABLE` or resume a cluster when its status is `PAUSED`.
 
--   クラスターを一時停止するには`paused = true`設定します。
--   クラスターを再開するには`paused = false`設定します。
+-   Set `paused = true` to pause a cluster.
+-   Set `paused = false` to resume a cluster.
 
-1.  [クラスターを作成する](#create-a-cluster-using-the-cluster-resource)実行するときに使用する`cluster.tf`ファイルで、 `config`構成に`pause = true`追加します。
+1.  In the `cluster.tf` file that is used when you [create the cluster](#create-a-cluster-using-the-cluster-resource), add `pause = true` to the `config` configurations:
 
         config = {
             paused = true
@@ -674,7 +679,7 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
             ...
           }
 
-2.  `terraform apply`コマンドを実行し、チェック後に`yes`と入力します。
+2.  Run the `terraform apply` command and type `yes` after check:
 
         $ terraform apply
 
@@ -710,7 +715,7 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
 
         Apply complete! Resources: 0 added, 1 changed, 0 destroyed.
 
-3.  ステータスを確認するには、 `terraform state show tidbcloud_cluster.${resource-name}`コマンドを使用します。
+3.  Use the `terraform state show tidbcloud_cluster.${resource-name}` command to check the status:
 
         $ terraform state show tidbcloud_cluster.example_cluster
 
@@ -749,7 +754,7 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
             status         = "PAUSED"
         }
 
-4.  クラスターを再開する必要がある場合は、 `paused = false`設定します。
+4.  When you need to resume the cluster, set `paused = false`:
 
         config = {
             paused = false
@@ -758,7 +763,7 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
             ...
           }
 
-5.  `terraform apply`コマンドを実行し、確認のために`yes`と入力します。 `terraform state show tidbcloud_cluster.${resource-name}`コマンドを使用してステータスを確認すると、 `RESUMING`に変わります。
+5.  Run the `terraform apply` command and type `yes` for confirmation. If you use the `terraform state show tidbcloud_cluster.${resource-name}` command to check the status, you will find it turns to `RESUMING`:
 
         # tidbcloud_cluster.example_cluster:
         resource "tidbcloud_cluster" "example_cluster" {
@@ -795,17 +800,17 @@ TiDB Cloud Dedicated クラスターの場合、Terraform を使用して次の�
             status         = "RESUMING"
         }
 
-6.  しばらく待ってから、 `terraform refersh`コマンドを使用して状態を更新します。最終的にステータスは`AVAILABLE`に変更されます。
+6.  Wait for a moment, then use the `terraform refersh` command to update the state. The status will be changed to `AVAILABLE` finally.
 
-これで、Terraform を使用してTiDB Cloud Dedicated クラスターを作成し、管理することができました。次に、 [バックアップリソース](/tidb-cloud/terraform-use-backup-resource.md)を使用してクラスターのバックアップを作成してみてください。
+Now, you have created and managed a TiDB Cloud Dedicated cluster with Terraform. Next, you can try creating a backup of the cluster by our [backup resource](/tidb-cloud/terraform-use-backup-resource.md).
 
-## クラスターをインポートする {#import-a-cluster}
+## Import a cluster {#import-a-cluster}
 
-Terraform で管理されていない TiDB クラスターの場合は、インポートするだけで Terraform を使用して管理できます。
+For a TiDB cluster that is not managed by Terraform, you can use Terraform to manage it just by importing it.
 
-たとえば、Terraform によって作成されていないクラスターをインポートしたり、 [復元リソースで作成された](/tidb-cloud/terraform-use-restore-resource.md#create-a-restore-task)であるクラスターをインポートしたりできます。
+For example, you can import a cluster that is not created by Terraform or import a cluster that is [created with the restore resource](/tidb-cloud/terraform-use-restore-resource.md#create-a-restore-task).
 
-1.  次のように`import_cluster.tf`ファイルを作成します。
+1.  Create a `import_cluster.tf` file as follows:
 
         terraform {
          required_providers {
@@ -816,9 +821,9 @@ Terraform で管理されていない TiDB クラスターの場合は、イン�
         }
         resource "tidbcloud_cluster" "import_cluster" {}
 
-2.  `terraform import tidbcloud_cluster.import_cluster projectId,clusterId`でクラスターをインポートします:
+2.  Import the cluster by `terraform import tidbcloud_cluster.import_cluster projectId,clusterId`:
 
-    例えば：
+    For example:
 
         $ terraform import tidbcloud_cluster.import_cluster 1372813089189561287,1379661944630264072
 
@@ -832,7 +837,7 @@ Terraform で管理されていない TiDB クラスターの場合は、イン�
         The resources that were imported are shown above. These resources are now in
         your Terraform state and will henceforth be managed by Terraform.
 
-3.  クラスターのステータスを確認するには、コマンド`terraform state show tidbcloud_cluster.import_cluster`を実行します。
+3.  Run the `terraform state show tidbcloud_cluster.import_cluster` command to check the status of the cluster:
 
         $ terraform state show tidbcloud_cluster.import_cluster
 
@@ -866,7 +871,7 @@ Terraform で管理されていない TiDB クラスターの場合は、イン�
             status         = "AVAILABLE"
         }
 
-4.  Terraform を使用してクラスターを管理するには、前の手順の出力を構成ファイルにコピーします。 `id`行目と`status`目は Terraform によって制御されるため、削除する必要があることに注意してください。
+4.  To manage the cluster using Terraform, you can copy the output of the previous step to your configuration file. Note that you need to delete the lines of `id` and `status`, because they will be controlled by Terraform instead:
 
         resource "tidbcloud_cluster" "import_cluster" {
               cloud_provider = "AWS"
@@ -895,11 +900,11 @@ Terraform で管理されていない TiDB クラスターの場合は、イン�
               region         = "eu-central-1"
         }
 
-5.  `terraform fmt`使用して構成ファイルをフォーマットできます。
+5.  You can use `terraform fmt` to format your configuration file:
 
         $ terraform fmt
 
-6.  構成と状態の一貫性を確保するには、 `terraform plan`または`terraform apply`を実行します。 `No changes`表示された場合、インポートは成功しています。
+6.  To ensure the consistency of the configuration and state, you can execute `terraform plan` or `terraform apply`. If you see `No changes`, the import is successful.
 
         $ terraform apply
 
@@ -911,11 +916,11 @@ Terraform で管理されていない TiDB クラスターの場合は、イン�
 
         Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
 
-これで、Terraform を使用してクラスターを管理できるようになりました。
+Now you can use Terraform to manage the cluster.
 
-## クラスターを削除する {#delete-a-cluster}
+## Delete a cluster {#delete-a-cluster}
 
-クラスターを削除するには、対応する`cluster.tf`ファイルが配置されているクラスター ディレクトリに移動し、 `terraform destroy`コマンドを実行してクラスター リソースを破棄します。
+To delete a cluster, go to the cluster directory where the corresponding `cluster.tf` file is located, and then run the `terraform destroy` command to destroy the cluster resource:
 
     $ terraform destroy
 
@@ -927,6 +932,6 @@ Terraform で管理されていない TiDB クラスターの場合は、イン�
 
     Enter a value: yes
 
-ここで、 `terraform show`コマンドを実行すると、リソースがクリアされているため何も表示されません。
+Now, if you run the `terraform show` command, you will get nothing because the resource has been cleared:
 
     $ terraform show

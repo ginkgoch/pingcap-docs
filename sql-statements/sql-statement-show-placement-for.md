@@ -1,23 +1,23 @@
 ---
 title: SHOW PLACEMENT FOR
-summary: TiDB での SHOW PLACEMENT FOR の使用法。
+summary: The usage of SHOW PLACEMENT FOR in TiDB.
 ---
 
-# 表示配置 {#show-placement-for}
+# SHOW PLACEMENT FOR {#show-placement-for}
 
-`SHOW PLACEMENT FOR` 、すべての配置オプションを要約し、特定のテーブル、データベース スキーマ、またはパーティションの標準形式で提示します。
+`SHOW PLACEMENT FOR` summarizes all placement options, and presents them in the canonical form for a specific table, database schema, or partition.
 
-> **注記：**
+> **Note:**
 >
-> この機能は[TiDB Cloudサーバーレス](https://docs.pingcap.com/tidbcloud/select-cluster-tier#tidb-cloud-serverless)クラスターでは利用できません。
+> This feature is not available on [{{{ .starter }}}](https://docs.pingcap.com/tidbcloud/select-cluster-tier#tidb-cloud-serverless) clusters.
 
-このステートメントは、配置Driver(PD) が配置のスケジュールで行った現在の進行状況を示す`Scheduling_State`フィールドを含む結果セットを返します。
+The statement returns a result set in which the `Scheduling_State` field indicates the current progress that the Placement Driver (PD) has made in scheduling the placement:
 
--   `PENDING` : PDはまだ配置のスケジュールを開始していません。これは、配置ルールは意味的には正しいものの、クラスターが現在そのルールを満たしていないことを示している可能性があります。例えば、 `FOLLOWERS=4`表示されているものの、フォロワー候補となる TiKV ストアが 3 つしかない場合などです。
--   `INPROGRESS` : PD が現在配置をスケジュール中です。
--   `SCHEDULED` : PD は配置を正常にスケジュールしました。
+-   `PENDING`: The PD has not yet started scheduling the placement. This might indicate that the placement rules are semantically correct, but cannot currently be satisfied by the cluster. For example, if `FOLLOWERS=4` but there are only 3 TiKV stores that are candidates for followers.
+-   `INPROGRESS`: The PD is currently scheduling the placement.
+-   `SCHEDULED`: The PD has successfully scheduled the placement.
 
-## 概要 {#synopsis}
+## Synopsis {#synopsis}
 
 ```ebnf+diagram
 ShowStmt ::=
@@ -29,7 +29,7 @@ ShowPlacementTarget ::=
 |   "TABLE" TableName "PARTITION" Identifier
 ```
 
-## 例 {#examples}
+## Examples {#examples}
 
 ```sql
 CREATE PLACEMENT POLICY p1 PRIMARY_REGION="us-east-1" REGIONS="us-east-1,us-west-1" FOLLOWERS=4;
@@ -75,12 +75,12 @@ SHOW PLACEMENT FOR TABLE t3 PARTITION p1\G
     Scheduling_State | PENDING
     1 row in set (0.00 sec)
 
-## MySQLの互換性 {#mysql-compatibility}
+## MySQL compatibility {#mysql-compatibility}
 
-このステートメントは、MySQL 構文に対する TiDB 拡張です。
+This statement is a TiDB extension to MySQL syntax.
 
-## 参照 {#see-also}
+## See also {#see-also}
 
--   [SQLの配置ルール](/placement-rules-in-sql.md)
--   [表示配置](/sql-statements/sql-statement-show-placement.md)
--   [配置ポリシーの作成](/sql-statements/sql-statement-create-placement-policy.md)
+-   [Placement Rules in SQL](/placement-rules-in-sql.md)
+-   [SHOW PLACEMENT](/sql-statements/sql-statement-show-placement.md)
+-   [CREATE PLACEMENT POLICY](/sql-statements/sql-statement-create-placement-policy.md)

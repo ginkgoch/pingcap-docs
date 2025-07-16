@@ -1,74 +1,74 @@
 ---
 title: Placement Rules in SQL
-summary: SQL ステートメントを使用してテーブルとパーティションの配置をスケジュールする方法を学習します。
+summary: Learn how to schedule placement of tables and partitions using SQL statements.
 ---
 
-# SQL の配置ルール {#placement-rules-in-sql}
+# Placement Rules in SQL {#placement-rules-in-sql}
 
-SQL の配置ルールは、SQL ステートメントを使用して TiKV クラスター内のデータの保存場所を指定できる機能です。この機能を使用すると、クラスター、データベース、テーブル、またはパーティションのデータを特定のリージョン、データセンター、ラック、またはホストにスケジュールできます。
+Placement Rules in SQL is a feature that enables you to specify where data is stored in a TiKV cluster using SQL statements. With this feature, you can schedule data of clusters, databases, tables, or partitions to specific regions, data centers, racks, or hosts.
 
-この機能は、次のユースケースを満たすことができます。
+This feature can fulfill the following use cases:
 
--   複数のデータセンターにデータをデプロイ、高可用性戦略を最適化するためのルールを構成します。
--   異なるアプリケーションからの複数のデータベースをマージし、異なるユーザーのデータを物理的に分離することで、インスタンス内の異なるユーザーの分離要件を満たします。
--   重要なデータのレプリカの数を増やして、アプリケーションの可用性とデータの信頼性を向上させます。
+-   Deploy data across multiple data centers and configure rules to optimize high availability strategies.
+-   Merge multiple databases from different applications and isolate data of different users physically, which meets the isolation requirements of different users within an instance.
+-   Increase the number of replicas for important data to improve application availability and data reliability.
 
-> **注記：**
+> **Note:**
 >
-> この機能は[TiDB Cloudサーバーレス](https://docs.pingcap.com/tidbcloud/select-cluster-tier#tidb-cloud-serverless)クラスターでは使用できません。
+> This feature is not available on [{{{ .starter }}}](https://docs.pingcap.com/tidbcloud/select-cluster-tier#tidb-cloud-serverless) clusters.
 
-## 概要 {#overview}
+## Overview {#overview}
 
-SQL の配置ルール機能を使用すると、次のように、粗い粒度から細かい粒度までのさまざまなレベルのデータに対して、必要な配置ポリシーを構成[配置ポリシーを作成する](#create-and-attach-placement-policies)ます。
+With the Placement Rules in SQL feature, you can [create placement policies](#create-and-attach-placement-policies) and configure desired placement policies for data at different levels, with granularity from coarse to fine as follows:
 
-| レベル     | 説明                                                                                                                                                                      |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| クラスタ    | デフォルトでは、TiDB はクラスターに対して 3 つのレプリカのポリシーを構成します。クラスターのグローバル配置ポリシーを構成することができます。詳細については、 [クラスタ全体のレプリカ数を指定する](#specify-the-number-of-replicas-globally-for-a-cluster)参照してください。 |
-| データベース  | 特定のデータベースの配置ポリシーを構成できます。詳細については、 [データベースのデフォルトの配置ポリシーを指定する](#specify-a-default-placement-policy-for-a-database)参照してください。                                                |
-| テーブル    | 特定のテーブルに対して配置ポリシーを設定できます。詳細については、 [テーブルの配置ポリシーを指定する](#specify-a-placement-policy-for-a-table)参照してください。                                                                  |
-| パーティション | テーブル内の異なる行にパーティションを作成し、パーティションの配置ポリシーを個別に構成できます。詳細については、 [パーティションテーブルの配置ポリシーを指定する](#specify-a-placement-policy-for-a-partitioned-table)参照してください。                        |
+| Level     | Description                                                                                                                                                                                                                                                                |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cluster   | By default, TiDB configures a policy of 3 replicas for a cluster. You can configure a global placement policy for your cluster. For more information, see [Specify the number of replicas globally for a cluster](#specify-the-number-of-replicas-globally-for-a-cluster). |
+| Database  | You can configure a placement policy for a specific database. For more information, see [Specify a default placement policy for a database](#specify-a-default-placement-policy-for-a-database).                                                                           |
+| Table     | You can configure a placement policy for a specific table. For more information, see [Specify a placement policy for a table](#specify-a-placement-policy-for-a-table).                                                                                                    |
+| Partition | You can create partitions for different rows in a table and configure placement policies for partitions separately. For more information, see [Specify a placement policy for a partitioned table](#specify-a-placement-policy-for-a-partitioned-table).                   |
 
-> **ヒント：**
+> **Tip:**
 >
-> *SQL での配置ルール*の実装は、PD の*配置ルール機能*に依存します。詳細については、 [配置ルールを構成する](https://docs.pingcap.com/tidb/stable/configure-placement-rules)を参照してください。SQL での配置ルールのコンテキストでは、*配置ルールは*、他のオブジェクトに添付された*配置ポリシー*、または TiDB から PD に送信されるルールを指す場合があります。
+> The implementation of *Placement Rules in SQL* relies on the *placement rules feature* of PD. For details, refer to [Configure Placement Rules](https://docs.pingcap.com/tidb/stable/configure-placement-rules). In the context of Placement Rules in SQL, *placement rules* might refer to *placement policies* attached to other objects, or to rules that are sent from TiDB to PD.
 
-## 制限事項 {#limitations}
+## Limitations {#limitations}
 
--   メンテナンスを簡素化するために、クラスター内の配置ポリシーの数を 10 以下に制限することをお勧めします。
--   配置ポリシーがアタッチされるテーブルとパーティションの合計数は 10,000 以下に制限することをお勧めします。ポリシーをアタッチするテーブルとパーティションが多すぎると、PD の計算ワークロードが増加し、サービス パフォーマンスに影響する可能性があります。
--   他の複雑な配置ポリシーを使用するのではなく、このドキュメントに示されている例に従って SQL 機能の配置ルールを使用することをお勧めします。
+-   To simplify maintenance, it is recommended to limit the number of placement policies within a cluster to 10 or fewer.
+-   It is recommended to limit the total number of tables and partitions attached with placement policies to 10,000 or fewer. Attaching policies to too many tables and partitions can increase computation workloads on PD, thereby affecting service performance.
+-   It is recommended to use the Placement Rules in SQL feature according to examples provided in this document rather than using other complex placement policies.
 
-## 前提条件 {#prerequisites}
+## Prerequisites {#prerequisites}
 
-配置ポリシーは、TiKV ノードのラベルの構成に依存します。たとえば、配置オプション`PRIMARY_REGION`は、TiKV のラベル`region`に依存します。
+Placement policies rely on the configuration of labels on TiKV nodes. For example, the `PRIMARY_REGION` placement option relies on the `region` label in TiKV.
 
 <CustomContent platform="tidb">
 
-配置ポリシーを作成すると、TiDB はポリシーで指定されたラベルが存在するかどうかをチェックしません。代わりに、ポリシーをアタッチするときに TiDB がチェックを実行します。したがって、配置ポリシーをアタッチする前に、各 TiKV ノードが正しいラベルで構成されていることを確認してください。TiDB セルフマネージド クラスターの構成方法は次のとおりです。
+When you create a placement policy, TiDB does not check whether the labels specified in the policy exist. Instead, TiDB performs the check when you attach the policy. Therefore, before attaching a placement policy, make sure that each TiKV node is configured with correct labels. The configuration method for a TiDB Self-Managed cluster is as follows:
 
     tikv-server --labels region=<region>,zone=<zone>,host=<host>
 
-詳細な設定方法については、次の例を参照してください。
+For detailed configuration methods, see the following examples:
 
-| 展開方法                    | 例                                                                                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| 手動展開                    | [トポロジラベルによるレプリカのスケジュール](/schedule-replicas-by-topology-labels.md)                                                                    |
-| TiUPによる展開               | [地理的に分散した展開トポロジ](/geo-distributed-deployment-topology.md)                                                                            |
-| TiDB Operatorによるデプロイメント | [KubernetesでTiDBクラスターを構成する](https://docs.pingcap.com/tidb-in-kubernetes/stable/configure-a-tidb-cluster#high-data-high-availability) |
+| Deployment method             | Example                                                                                                                                           |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manual deployment             | [Schedule replicas by topology labels](/schedule-replicas-by-topology-labels.md)                                                                  |
+| Deployment with TiUP          | [Geo-distributed deployment topology](/geo-distributed-deployment-topology.md)                                                                    |
+| Deployment with TiDB Operator | [Configure a TiDB cluster in Kubernetes](https://docs.pingcap.com/tidb-in-kubernetes/stable/configure-a-tidb-cluster#high-data-high-availability) |
 
-> **注記：**
+> **Note:**
 >
-> TiDB Cloud Dedicated クラスターの場合、 TiDB Cloud Dedicated クラスター内の TiKV ノードのラベルは自動的に構成されるため、これらのラベル構成手順をスキップできます。
+> For TiDB Cloud Dedicated clusters, you can skip these label configuration steps because the labels on TiKV nodes in TiDB Cloud Dedicated clusters are configured automatically.
 
 </CustomContent>
 
 <CustomContent platform="tidb-cloud">
 
-TiDB Cloud Dedicated クラスターの場合、TiKV ノードのラベルは自動的に構成されます。
+For TiDB Cloud Dedicated clusters, labels on TiKV nodes are configured automatically.
 
 </CustomContent>
 
-現在の TiKV クラスターで使用可能なすべてのラベルを表示するには、次[`SHOW PLACEMENT LABELS`](/sql-statements/sql-statement-show-placement-labels.md)ステートメントを使用します。
+To view all available labels in the current TiKV cluster, you can use the [`SHOW PLACEMENT LABELS`](/sql-statements/sql-statement-show-placement-labels.md) statement:
 
 ```sql
 SHOW PLACEMENT LABELS;
@@ -82,26 +82,26 @@ SHOW PLACEMENT LABELS;
 3 rows in set (0.00 sec)
 ```
 
-## 使用法 {#usage}
+## Usage {#usage}
 
-このセクションでは、SQL ステートメントを使用して配置ポリシーを作成、アタッチ、表示、変更、および削除する方法について説明します。
+This section describes how to create, attach, view, modify, and delete placement policies using SQL statements.
 
-### 配置ポリシーを作成して添付する {#create-and-attach-placement-policies}
+### Create and attach placement policies {#create-and-attach-placement-policies}
 
-1.  配置ポリシーを作成するには、 [`CREATE PLACEMENT POLICY`](/sql-statements/sql-statement-create-placement-policy.md)ステートメントを使用します。
+1.  To create a placement policy, use the [`CREATE PLACEMENT POLICY`](/sql-statements/sql-statement-create-placement-policy.md) statement:
 
     ```sql
     CREATE PLACEMENT POLICY myplacementpolicy PRIMARY_REGION="us-east-1" REGIONS="us-east-1,us-west-1";
     ```
 
-    この声明では、
+    In this statement:
 
-    -   `PRIMARY_REGION="us-east-1"`オプションは、 `region`ラベルのノードにRaft Leaders を`us-east-1`として配置することを意味します。
-    -   `REGIONS="us-east-1,us-west-1"`オプションは、 `region`ラベルのノードに`us-east-1`として、 `region`ラベルのノードに`us-west-1`としてRaft Followers を配置することを意味します。
+    -   The `PRIMARY_REGION="us-east-1"` option means placing Raft Leaders on nodes with the `region` label as `us-east-1`.
+    -   The `REGIONS="us-east-1,us-west-1"` option means placing Raft Followers on nodes with the `region` label as `us-east-1` and nodes with the `region` label as `us-west-1`.
 
-    構成可能な配置オプションとその意味の詳細については、 [配置オプション](#placement-option-reference)参照してください。
+    For more configurable placement options and their meanings, see the [Placement options](#placement-option-reference).
 
-2.  テーブルまたはパーティションテーブルに配置ポリシーをアタッチするには、 `CREATE TABLE`または`ALTER TABLE`ステートメントを使用して、そのテーブルまたはパーティションテーブルの配置ポリシーを指定します。
+2.  To attach a placement policy to a table or a partitioned table, use the `CREATE TABLE` or `ALTER TABLE` statement to specify the placement policy for that table or partitioned table:
 
     ```sql
     CREATE TABLE t1 (a INT) PLACEMENT POLICY=myplacementpolicy;
@@ -109,11 +109,11 @@ SHOW PLACEMENT LABELS;
     ALTER TABLE t2 PLACEMENT POLICY=myplacementpolicy;
     ```
 
-    `PLACEMENT POLICY`どのデータベース スキーマにも関連付けられておらず、グローバル スコープでアタッチできます。したがって、 `CREATE TABLE`使用して配置ポリシーを指定する場合、追加の権限は必要ありません。
+    `PLACEMENT POLICY` is not associated with any database schema and can be attached in a global scope. Therefore, specifying a placement policy using `CREATE TABLE` does not require any additional privileges.
 
-### 配置ポリシーをビュー {#view-placement-policies}
+### View placement policies {#view-placement-policies}
 
--   既存の配置ポリシーを表示するには、次[`SHOW CREATE PLACEMENT POLICY`](/sql-statements/sql-statement-show-create-placement-policy.md)ステートメントを使用します。
+-   To view an existing placement policy, you can use the [`SHOW CREATE PLACEMENT POLICY`](/sql-statements/sql-statement-show-create-placement-policy.md) statement:
 
     ```sql
     SHOW CREATE PLACEMENT POLICY myplacementpolicy\G
@@ -123,7 +123,7 @@ SHOW PLACEMENT LABELS;
     1 row in set (0.00 sec)
     ```
 
--   特定のテーブルにアタッチされている配置ポリシーを表示するには、次の[`SHOW CREATE TABLE`](/sql-statements/sql-statement-show-create-table.md)ステートメントを使用します。
+-   To view the placement policy attached to a specific table, you can use the [`SHOW CREATE TABLE`](/sql-statements/sql-statement-show-create-table.md) statement:
 
     ```sql
     SHOW CREATE TABLE t1\G
@@ -135,7 +135,7 @@ SHOW PLACEMENT LABELS;
     1 row in set (0.00 sec)
     ```
 
--   クラスター内の配置ポリシーの定義を表示するには、 [`INFORMATION_SCHEMA.PLACEMENT_POLICIES`](/information-schema/information-schema-placement-policies.md)システム テーブルをクエリします。
+-   To view the definitions of placement policies in a cluster, you can query the [`INFORMATION_SCHEMA.PLACEMENT_POLICIES`](/information-schema/information-schema-placement-policies.md) system table:
 
     ```sql
     SELECT * FROM information_schema.placement_policies\G
@@ -155,104 +155,104 @@ SHOW PLACEMENT LABELS;
     1 row in set
     ```
 
--   クラスター内の配置ポリシーに関連付けられているすべてのテーブルを表示するには、 `information_schema.tables`システム テーブルの`tidb_placement_policy_name`列目をクエリします。
+-   To view all tables that are attached with placement policies in a cluster, you can query the `tidb_placement_policy_name` column of the `information_schema.tables` system table:
 
     ```sql
     SELECT * FROM information_schema.tables WHERE tidb_placement_policy_name IS NOT NULL;
     ```
 
--   クラスター内の配置ポリシーに関連付けられているすべてのパーティションを表示するには、 `information_schema.partitions`システム テーブルの`tidb_placement_policy_name`列目をクエリします。
+-   To view all partitions that are attached with placement policies in a cluster, you can query the `tidb_placement_policy_name` column of the `information_schema.partitions` system table:
 
     ```sql
     SELECT * FROM information_schema.partitions WHERE tidb_placement_policy_name IS NOT NULL;
     ```
 
--   すべてのオブジェクトに添付された配置ポリシーは*非同期的に*適用されます。配置ポリシーのスケジュールの進行状況を確認するには、次の[`SHOW PLACEMENT`](/sql-statements/sql-statement-show-placement.md)ステートメントを使用できます。
+-   Placement policies attached to all objects are applied *asynchronously*. To check the scheduling progress of placement policies, you can use the [`SHOW PLACEMENT`](/sql-statements/sql-statement-show-placement.md) statement:
 
     ```sql
     SHOW PLACEMENT;
     ```
 
-### 配置ポリシーを変更する {#modify-placement-policies}
+### Modify placement policies {#modify-placement-policies}
 
-配置ポリシーを変更するには、 [`ALTER PLACEMENT POLICY`](/sql-statements/sql-statement-alter-placement-policy.md)ステートメントを使用できます。変更は、対応するポリシーに関連付けられているすべてのオブジェクトに適用されます。
+To modify a placement policy, you can use the  [`ALTER PLACEMENT POLICY`](/sql-statements/sql-statement-alter-placement-policy.md) statement. The modification will apply to all objects that are attached with the corresponding policy.
 
 ```sql
 ALTER PLACEMENT POLICY myplacementpolicy FOLLOWERS=4;
 ```
 
-このステートメントでは、 `FOLLOWERS=4`オプションは、 4 つのフォロワーと 1 つのLeaderを含む、データの 5 つのレプリカを構成することを意味します。 構成可能な配置オプションとその意味の詳細については、 [配置オプションリファレンス](#placement-option-reference)参照してください。
+In this statement, the `FOLLOWERS=4` option means configuring 5 replicas for the data, including 4 Followers and 1 Leader. For more configurable placement options and their meanings, see [Placement option reference](#placement-option-reference).
 
-### ドロップ配置ポリシー {#drop-placement-policies}
+### Drop placement policies {#drop-placement-policies}
 
-どのテーブルまたはパーティションにもアタッチされていないポリシーを削除するには、次の[`DROP PLACEMENT POLICY`](/sql-statements/sql-statement-drop-placement-policy.md)ステートメントを使用します。
+To drop a policy that is not attached to any table or partition, you can use the [`DROP PLACEMENT POLICY`](/sql-statements/sql-statement-drop-placement-policy.md) statement:
 
 ```sql
 DROP PLACEMENT POLICY myplacementpolicy;
 ```
 
-## 配置オプションリファレンス {#placement-option-reference}
+## Placement option reference {#placement-option-reference}
 
-配置ポリシーを作成または変更するときに、必要に応じて配置オプションを構成できます。
+When creating or modifying placement policies, you can configure placement options as needed.
 
-> **注記：**
+> **Note:**
 >
-> `PRIMARY_REGION` 、 `REGIONS` 、 `SCHEDULE`オプションは`CONSTRAINTS`オプションと同時に指定できません。指定するとエラーが発生します。
+> The `PRIMARY_REGION`, `REGIONS`, and `SCHEDULE` options cannot be specified together with the `CONSTRAINTS` option, or an error will occur.
 
-### 通常の配置オプション {#regular-placement-options}
+### Regular placement options {#regular-placement-options}
 
-通常の配置オプションは、データ配置の基本要件を満たすことができます。
+Regular placement options can meet the basic requirements of data placement.
 
-| オプション名           | 説明                                                                                 |
-| ---------------- | ---------------------------------------------------------------------------------- |
-| `PRIMARY_REGION` | このオプションの値と一致する`region`ラベルを持つノードにRaftリーダーを配置することを指定します。                             |
-| `REGIONS`        | このオプションの値に一致する`region`ラベルを持つノードにRaft Follower を配置することを指定します。                       |
-| `SCHEDULE`       | フォロワーの配置をスケジュールするための戦略を指定します。値のオプションは`EVEN` (デフォルト) または`MAJORITY_IN_PRIMARY`です。    |
-| `FOLLOWERS`      | フォロワーの数を指定します。たとえば、 `FOLLOWERS=2`データのレプリカが 3 つあることを意味します (フォロワーが 2 つ、Leaderが 1 つ)。 |
+| Option name      | Description                                                                                                                          |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `PRIMARY_REGION` | Specifies that placing Raft Leaders on nodes with a `region` label that matches the value of this option.                            |
+| `REGIONS`        | Specifies that placing Raft Followers on nodes with a `region` label that matches the value of this option.                          |
+| `SCHEDULE`       | Specifies the strategy for scheduling the placement of Followers. The value options are `EVEN` (default) or `MAJORITY_IN_PRIMARY`.   |
+| `FOLLOWERS`      | Specifies the number of Followers. For example, `FOLLOWERS=2` means there will be 3 replicas of the data (2 Followers and 1 Leader). |
 
-### 高度な配置オプション {#advanced-placement-options}
+### Advanced placement options {#advanced-placement-options}
 
-高度な構成オプションにより、複雑なシナリオの要件を満たすためのデータ配置の柔軟性が向上します。ただし、高度なオプションの構成は通常のオプションよりも複雑であり、クラスター トポロジと TiDB データ シャーディングについて深く理解している必要があります。
+Advanced configuration options provide more flexibility for data placement to meet the requirements of complex scenarios. However, configuring advanced options is more complex than regular options and requires you to have a deep understanding of the cluster topology and the TiDB data sharding.
 
-| オプション名                 | 説明                                                                              |
-| ---------------------- | ------------------------------------------------------------------------------- |
-| `CONSTRAINTS`          | すべてのロールに適用される制約のリスト。たとえば、 `CONSTRAINTS="[+disk=ssd]"` 。                         |
-| `LEADER_CONSTRAINTS`   | Leaderにのみ適用される制約のリスト。                                                           |
-| `FOLLOWER_CONSTRAINTS` | フォロワーにのみ適用される制約のリスト。                                                            |
-| `LEARNER_CONSTRAINTS`  | 学習者にのみ適用される制約のリスト。                                                              |
-| `LEARNERS`             | 学習者の数。                                                                          |
-| `SURVIVAL_PREFERENCE`  | ラベルの災害許容レベルに応じたレプリカ配置の優先順位。たとえば、 `SURVIVAL_PREFERENCE="[region, zone, host]"` 。 |
+| Option name            | Description                                                                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CONSTRAINTS`          | A list of constraints that apply to all roles. For example, `CONSTRAINTS="[+disk=ssd]"`.                                                           |
+| `LEADER_CONSTRAINTS`   | A list of constraints that only apply to Leader.                                                                                                   |
+| `FOLLOWER_CONSTRAINTS` | A list of constraints that only apply to Followers.                                                                                                |
+| `LEARNER_CONSTRAINTS`  | A list of constraints that only apply to learners.                                                                                                 |
+| `LEARNERS`             | The number of learners.                                                                                                                            |
+| `SURVIVAL_PREFERENCE`  | The replica placement priority according to the disaster tolerance level of the labels. For example, `SURVIVAL_PREFERENCE="[region, zone, host]"`. |
 
-### 制約フォーマット {#constraints-formats}
+### CONSTRAINTS formats {#constraints-formats}
 
-次のいずれかの形式を使用して、 `CONSTRAINTS` 、 `FOLLOWER_CONSTRAINTS` 、および`LEARNER_CONSTRAINTS`配置オプションを設定できます。
+You can configure `CONSTRAINTS`, `FOLLOWER_CONSTRAINTS`, and `LEARNER_CONSTRAINTS` placement options using either of the following formats:
 
-| CONSTRAINTS 形式 | 説明                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| リスト形式          | 指定する制約がすべてのレプリカに適用される場合、キーと値のリスト形式を使用できます。各キーは`+`または`-`で始まります。例:<br/><ul><li> `[+region=us-east-1]` 、 `region`ラベルを持つノードにデータを`us-east-1`として配置することを意味します。</li><li> `[+region=us-east-1,-type=fault]` 、 `region`ラベルが`us-east-1`であるが、 `type`ラベルが`fault`ではないノードにデータを配置することを意味します。</li></ul><br/>                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| 辞書形式           | 異なる制約に対して異なるレプリカ数を指定する必要がある場合は、辞書形式を使用できます。例:<br/><ul><li> `FOLLOWER_CONSTRAINTS="{+region=us-east-1: 1,+region=us-east-2: 1,+region=us-west-1: 1}";` 、 `us-east-1`にFollowerを 1 人、 `us-east-2`にFollowerを 1 人、 `us-west-1`にFollowerを 1 人配置することを意味します。</li><li> `FOLLOWER_CONSTRAINTS='{"+region=us-east-1,+type=scale-node": 1,"+region=us-west-1": 1}';` 、 `us-east-1`領域にあり、 `type`ラベルが`scale-node`であるノードに 1 つのFollowerを配置し、 `us-west-1`に 1 つのFollowerを配置することを意味します。</li></ul>辞書形式は、 `+`または`-`で始まる各キーをサポートし、特別な`#evict-leader`属性を構成できます。たとえば、 `FOLLOWER_CONSTRAINTS='{"+region=us-east-1":1, "+region=us-east-2": 2, "+region=us-west-1,#evict-leader": 1}'` 、 `us-west-1`で選出されたリーダーが災害復旧中に可能な限り排除されることを意味します。 |
+| CONSTRAINTS format | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| List format        | If a constraint to be specified applies to all replicas, you can use a key-value list format. Each key starts with `+` or `-`. For example: <br/><ul><li>`[+region=us-east-1]` means placing data on nodes that have a `region` label as `us-east-1`.</li><li>`[+region=us-east-1,-type=fault]` means placing data on nodes that have a `region` label as `us-east-1` but do not have a `type` label as `fault`.</li></ul><br/>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Dictionary format  | If you need to specify different numbers of replicas for different constraints, you can use the dictionary format. For example: <br/><ul><li>`FOLLOWER_CONSTRAINTS="{+region=us-east-1: 1,+region=us-east-2: 1,+region=us-west-1: 1}";` means placing one Follower in `us-east-1`, one Follower in `us-east-2`, and one Follower in `us-west-1`.</li><li>`FOLLOWER_CONSTRAINTS='{"+region=us-east-1,+type=scale-node": 1,"+region=us-west-1": 1}';` means placing one Follower on a node that is located in the `us-east-1` region and has the `type` label as `scale-node`, and one Follower in `us-west-1`.</li></ul>The dictionary format supports each key starting with `+` or `-` and allows you to configure the special `#evict-leader` attribute. For example, `FOLLOWER_CONSTRAINTS='{"+region=us-east-1":1, "+region=us-east-2": 2, "+region=us-west-1,#evict-leader": 1}'` means that the Leaders elected in `us-west-1` will be evicted as much as possible during disaster recovery. |
 
-> **注記：**
+> **Note:**
 >
-> -   `LEADER_CONSTRAINTS`配置オプションはリスト形式のみをサポートします。
-> -   リスト形式と辞書形式はどちらも YAML パーサーに基づいていますが、場合によっては YAML 構文が誤って解析されることがあります。たとえば、 `"{+region=east:1,+region=west:2}"` ( `:`後にスペースがない) は`'{"+region=east:1": null, "+region=west:2": null}'`と誤って解析される可能性がありますが、これは予期しません。ただし、 `"{+region=east: 1,+region=west: 2}"` ( `:`の後にスペースがある) は`'{"+region=east": 1, "+region=west": 2}'`と正しく解析されます。したがって、 `:`後にスペースを追加することをお勧めします。
+> -   The `LEADER_CONSTRAINTS` placement option only supports the list format.
+> -   Both list and dictionary formats are based on the YAML parser, but YAML syntax might be incorrectly parsed in some cases. For example, `"{+region=east:1,+region=west:2}"` (no space after `:`) can be incorrectly parsed as `'{"+region=east:1": null, "+region=west:2": null}'`, which is unexpected. However, `"{+region=east: 1,+region=west: 2}"` (space after `:`) can be correctly parsed as `'{"+region=east": 1, "+region=west": 2}'`. Therefore, it is recommended to add a space after `:`.
 
-## 基本的な例 {#basic-examples}
+## Basic examples {#basic-examples}
 
-### クラスタ全体のレプリカ数を指定する {#specify-the-number-of-replicas-globally-for-a-cluster}
+### Specify the number of replicas globally for a cluster {#specify-the-number-of-replicas-globally-for-a-cluster}
 
-クラスターが初期化された後、デフォルトのレプリカ数は`3`です。クラスターにさらに多くのレプリカが必要な場合は、配置ポリシーを構成してこの数を増やし、 [`ALTER RANGE`](/sql-statements/sql-statement-alter-range.md)使用してクラスター レベルでポリシーを適用できます。例:
+After a cluster is initialized, the default number of replicas is `3`. If a cluster needs more replicas, you can increase this number by configuring a placement policy, and then apply the policy at the cluster level using [`ALTER RANGE`](/sql-statements/sql-statement-alter-range.md). For example:
 
 ```sql
 CREATE PLACEMENT POLICY five_replicas FOLLOWERS=4;
 ALTER RANGE global PLACEMENT POLICY five_replicas;
 ```
 
-TiDB ではリーダーの数がデフォルトで`1`に設定されているので、 `five replicas`フォロワーが`4` 、Leaderが`1`あることを意味することに注意してください。
+Note that because TiDB defaults the number of Leaders to `1`, `five replicas` means `4` Followers and `1` Leader.
 
-### データベースのデフォルトの配置ポリシーを指定する {#specify-a-default-placement-policy-for-a-database}
+### Specify a default placement policy for a database {#specify-a-default-placement-policy-for-a-database}
 
-データベースのデフォルトの配置ポリシーを指定できます。これは、データベースのデフォルトの文字セットまたは照合順序を設定するのと同様に機能します。データベース内のテーブルまたはパーティションに他の配置ポリシーが指定されていない場合は、データベースの配置ポリシーがテーブルとパーティションに適用されます。例:
+You can specify a default placement policy for a database. This works similarly to setting a default character set or collation for a database. If no other placement policy is specified for a table or partition in the database, the placement policy for the database will apply to the table and partition. For example:
 
 ```sql
 CREATE PLACEMENT POLICY p1 PRIMARY_REGION="us-east-1" REGIONS="us-east-1,us-east-2";  -- Creates a placement policy
@@ -276,11 +276,11 @@ CREATE TABLE t4 (a INT);  -- Creates a table t4. The default placement policy p3
 ALTER PLACEMENT POLICY p3 FOLLOWERS=3; -- `FOLLOWERS=3` applies to the table attached with policy p3 (that is, table t4).
 ```
 
-テーブルからそのパーティションへのポリシー継承は、前述の例のポリシー継承とは異なることに注意してください。テーブルのデフォルト ポリシーを変更すると、新しいポリシーはそのテーブル内のパーティションにも適用されます。ただし、テーブルがデータベースからポリシーを継承するのは、ポリシーを指定せずに作成された場合のみです。テーブルがデータベースからポリシーを継承すると、データベースのデフォルト ポリシーを変更してもそのテーブルには適用されません。
+Note that the policy inheritance from a table to its partitions differs from the policy inheritance in the preceding example. When you change the default policy of a table, the new policy also applies to partitions in that table. However, a table inherits the policy from the database only if it is created without any policy specified. Once a table inherits the policy from the database, modifying the default policy of the database does not apply to that table.
 
-### テーブルの配置ポリシーを指定する {#specify-a-placement-policy-for-a-table}
+### Specify a placement policy for a table {#specify-a-placement-policy-for-a-table}
 
-テーブルのデフォルトの配置ポリシーを指定できます。例:
+You can specify a default placement policy for a table. For example:
 
 ```sql
 CREATE PLACEMENT POLICY five_replicas FOLLOWERS=4;
@@ -290,9 +290,9 @@ CREATE TABLE t (a INT) PLACEMENT POLICY=five_replicas;  -- Creates a table t and
 ALTER TABLE t PLACEMENT POLICY=default; -- Removes the placement policy 'five_replicas' from the table t and resets the placement policy to the default one.
 ```
 
-### パーティションテーブルの配置ポリシーを指定する {#specify-a-placement-policy-for-a-partitioned-table}
+### Specify a placement policy for a partitioned table {#specify-a-placement-policy-for-a-partitioned-table}
 
-パーティションテーブルまたはパーティションの配置ポリシーを指定することもできます。例:
+You can also specify a placement policy for a partitioned table or a partition. For example:
 
 ```sql
 CREATE PLACEMENT POLICY storageforhisotrydata CONSTRAINTS="[+node=history]";
@@ -310,22 +310,22 @@ PARTITION BY RANGE( YEAR(purchased) ) (
 );
 ```
 
-テーブル内のパーティションに配置ポリシーが指定されていない場合、パーティションはテーブルからポリシー (存在する場合) を継承しようとします。上記の例では、次のようになります。
+If no placement policy is specified for a partition in a table, the partition attempts to inherit the policy (if any) from the table. In the preceding example:
 
--   `p0`パーティションには`storageforhisotrydata`ポリシーが適用されます。
--   `p4`パーティションには`storagefornewdata`ポリシーが適用されます。
--   `p1` 、および`p3`パーティションには`p2`表`t1`から継承された`companystandardpolicy`配置ポリシーが適用されます。
--   テーブル`t1`に配置ポリシーが指定されていない場合、 `p1` 、 `p2` 、および`p3`パーティションはデータベースのデフォルト ポリシーまたはグローバル デフォルト ポリシーを継承します。
+-   The `p0` partition will apply the `storageforhisotrydata` policy.
+-   The `p4` partition will apply the `storagefornewdata` policy.
+-   The `p1`, `p2`, and `p3` partitions will apply the `companystandardpolicy` placement policy inherited from the table `t1`.
+-   If no placement policy is specified for the table `t1`, the `p1`, `p2`, and `p3` partitions will inherit the database default policy or the global default policy.
 
-これらのパーティションに配置ポリシーをアタッチした後、次の例のように特定のパーティションの配置ポリシーを変更できます。
+After placement policies are attached to these partitions, you can change the placement policy for a specific partition as in the following example:
 
 ```sql
 ALTER TABLE t1 PARTITION p1 PLACEMENT POLICY=storageforhisotrydata;
 ```
 
-## 高可用性の例 {#high-availability-examples}
+## High availability examples {#high-availability-examples}
 
-次のトポロジを持つクラスターがあり、TiKV ノードが 3 つのリージョンに分散され、各リージョンに 3 つの利用可能なゾーンが含まれているとします。
+Assume that there is a cluster with the following topology, where TiKV nodes are distributed across 3 regions, with each region containing 3 available zones:
 
 ```sql
 SELECT store_id,address,label from INFORMATION_SCHEMA.TIKV_STORE_STATUS;
@@ -345,41 +345,41 @@ SELECT store_id,address,label from INFORMATION_SCHEMA.TIKV_STORE_STATUS;
 
 ```
 
-### 生存の好みを指定する {#specify-survival-preferences}
+### Specify survival preferences {#specify-survival-preferences}
 
-正確なデータ分散については特に気にせず、災害復旧要件を満たすことを優先する場合は、 `SURVIVAL_PREFERENCES`オプションを使用してデータ存続の設定を指定できます。
+If you are not particularly concerned about the exact data distribution but prioritize fulfilling disaster recovery requirements, you can use the `SURVIVAL_PREFERENCES` option to specify data survival preferences.
 
-前の例と同様に、TiDB クラスターは 3 つのリージョンに分散されており、各リージョンには 3 つのゾーンが含まれています。このクラスターの配置ポリシーを作成するときは、 `SURVIVAL_PREFERENCES`次のように構成すると仮定します。
+As in the preceding example, the TiDB cluster is distributed across 3 regions, with each region containing 3 zones. When creating placement policies for this cluster, assume that you configure the `SURVIVAL_PREFERENCES` as follows:
 
 ```sql
 CREATE PLACEMENT POLICY multiaz SURVIVAL_PREFERENCES="[region, zone, host]";
 CREATE PLACEMENT POLICY singleaz CONSTRAINTS="[+region=us-east-1]" SURVIVAL_PREFERENCES="[zone]";
 ```
 
-配置ポリシーを作成したら、必要に応じて対応するテーブルに添付できます。
+After creating the placement policies, you can attach them to the corresponding tables as needed:
 
--   `multiaz`配置ポリシーが関連付けられているテーブルの場合、データは異なるリージョンの 3 つのレプリカに配置され、データ分離のクロスリージョン存続目標、次にクロスゾーン存続目標、最後にクロスホスト存続目標を満たすことが優先されます。
--   `singleaz`配置ポリシーがアタッチされたテーブルの場合、データは最初に`us-east-1`リージョンの 3 つのレプリカに配置され、その後、データ分離のゾーン間存続目標が満たされます。
+-   For tables attached with the `multiaz` placement policy, data will be placed in 3 replicas in different regions, prioritizing to meet the cross-region survival goal of data isolation, followed by the cross-zone survival goal, and finally the cross-host survival goal.
+-   For tables attached with the `singleaz` placement policy, data will be placed in 3 replicas in the `us-east-1` region first, and then meet the cross-zone survival goal of data isolation.
 
 <CustomContent platform="tidb">
 
-> **注記：**
+> **Note:**
 >
-> `SURVIVAL_PREFERENCES`はPDでは`location-labels`に相当します。詳細については[トポロジラベルによるレプリカのスケジュール](/schedule-replicas-by-topology-labels.md)参照してください。
+> `SURVIVAL_PREFERENCES` is equivalent to `location-labels` in PD. For more information, see [Schedule Replicas by Topology Labels](/schedule-replicas-by-topology-labels.md).
 
 </CustomContent>
 
 <CustomContent platform="tidb-cloud">
 
-> **注記：**
+> **Note:**
 >
-> `SURVIVAL_PREFERENCES`はPDでは`location-labels`に相当します。詳細については[トポロジラベルによるレプリカのスケジュール](https://docs.pingcap.com/tidb/stable/schedule-replicas-by-topology-labels)参照してください。
+> `SURVIVAL_PREFERENCES` is equivalent to `location-labels` in PD. For more information, see [Schedule Replicas by Topology Labels](https://docs.pingcap.com/tidb/stable/schedule-replicas-by-topology-labels).
 
 </CustomContent>
 
-### 複数のデータセンターに2:2:1で分散された5つのレプリカを持つクラスターを指定します。 {#specify-a-cluster-with-5-replicas-distributed-2-2-1-across-multiple-data-centers}
+### Specify a cluster with 5 replicas distributed 2:2:1 across multiple data centers {#specify-a-cluster-with-5-replicas-distributed-2-2-1-across-multiple-data-centers}
 
-2:2:1 の比率で 5 つのレプリカを分散するなど、特定のデータ分散が必要な場合は、次の[辞書の形式](#constraints-formats)つの`CONSTRAINTS`構成することで、さまざまな制約に対して異なる数のレプリカを指定できます。
+If you need a specific data distribution, such as a 5-replica distribution in the proportion of 2:2:1, you can specify different numbers of replicas for different constraints by configuring these `CONSTRAINTS` in the [dictionary formats](#constraints-formats):
 
 ```sql
 CREATE PLACEMENT POLICY `deploy221` CONSTRAINTS='{"+region=us-east-1":2, "+region=us-east-2": 2, "+region=us-west-1": 1}';
@@ -395,45 +395,45 @@ SHOW PLACEMENT;
 +-------------------+---------------------------------------------------------------------------------------------+------------------+
 ```
 
-クラスターにグローバル`deploy221`配置ポリシーが設定されると、TiDB はこのポリシーに従ってデータを分散します。つまり、 `us-east-1`リージョンに 2 つのレプリカ、 `us-east-2`リージョンに 2 つのレプリカ、 `us-west-1`リージョンに 1 つのレプリカを配置します。
+After the global  `deploy221` placement policy is set for the cluster, TiDB distributes data according to this policy: placing two replicas in the `us-east-1` region, two replicas in the `us-east-2` region, and one replica in the `us-west-1` region.
 
-### リーダーとフォロワーの分布を指定する {#specify-the-distribution-of-leaders-and-followers}
+### Specify the distribution of Leaders and Followers {#specify-the-distribution-of-leaders-and-followers}
 
-制約または`PRIMARY_REGION`使用して、リーダーとフォロワーの特定の分布を指定できます。
+You can specify a specific distribution of Leaders and Followers using constraints or `PRIMARY_REGION`.
 
-#### 制約を使用する {#use-constraints}
+#### Use constraints {#use-constraints}
 
-ノード間でのRaftリーダーの分散に関して特定の要件がある場合は、次のステートメントを使用して配置ポリシーを指定できます。
+If you have specific requirements for the distribution of Raft Leaders among nodes, you can specify the placement policy using the following statement:
 
 ```sql
 CREATE PLACEMENT POLICY deploy221_primary_east1 LEADER_CONSTRAINTS="[+region=us-east-1]" FOLLOWER_CONSTRAINTS='{"+region=us-east-1": 1, "+region=us-east-2": 2, "+region=us-west-1: 1}';
 ```
 
-この配置ポリシーが作成され、目的のデータにアタッチされると、データのRaftLeaderレプリカは`LEADER_CONSTRAINTS`オプションで指定された`us-east-1`リージョンに配置され、データの他のレプリカは`FOLLOWER_CONSTRAINTS`オプションで指定されたリージョンに配置されます。 `us-east-1`リージョンのノード停止など、クラスターに障害が発生した場合、これらのリージョンが`FOLLOWER_CONSTRAINTS`で指定されている場合でも、新しいLeaderは他のリージョンから選出されることに注意してください。つまり、サービスの可用性を確保することが最優先されます。
+After this placement policy is created and attached to the desired data, the Raft Leader replicas of the data will be placed in the `us-east-1` region specified by the `LEADER_CONSTRAINTS` option, while other replicas of the data will be placed in regions specified by the `FOLLOWER_CONSTRAINTS` option. Note that if the cluster fails, such as a node outage in the `us-east-1` region, a new Leader will still be elected from other regions, even if these regions are specified in `FOLLOWER_CONSTRAINTS`. In other words, ensuring service availability takes the highest priority.
 
-`us-east-1`リージョンで障害が発生した場合、 `us-west-1`に新しいリーダーを配置したくない場合は、そのリージョンで新しく選出されたリーダーを排除するための特別な`evict-leader`属性を構成できます。
+In the event of a failure in the `us-east-1` region, if you do not want to place new Leaders in `us-west-1`, you can configure a special `evict-leader` attribute to evict the newly elected Leaders in that region:
 
 ```sql
 CREATE PLACEMENT POLICY deploy221_primary_east1 LEADER_CONSTRAINTS="[+region=us-east-1]" FOLLOWER_CONSTRAINTS='{"+region=us-east-1": 1, "+region=us-east-2": 2, "+region=us-west-1,#evict-leader": 1}';
 ```
 
-#### <code>PRIMARY_REGION</code>を使用する {#use-code-primary-region-code}
+#### Use <code>PRIMARY_REGION</code> {#use-code-primary-region-code}
 
-クラスター トポロジで`region`ラベルが設定されている場合は、 `PRIMARY_REGION`および`REGIONS`オプションを使用してフォロワーの配置ポリシーを指定することもできます。
+If the `region` label is configured in your cluster topology, you can also use the `PRIMARY_REGION` and `REGIONS` options to specify a placement policy for Followers:
 
 ```sql
 CREATE PLACEMENT POLICY eastandwest PRIMARY_REGION="us-east-1" REGIONS="us-east-1,us-east-2,us-west-1" SCHEDULE="MAJORITY_IN_PRIMARY" FOLLOWERS=4;
 CREATE TABLE t1 (a INT) PLACEMENT POLICY=eastandwest;
 ```
 
--   `PRIMARY_REGION`リーダーの配布地域を指定します。このオプションでは 1 つの地域のみ指定できます。
--   `SCHEDULE`オプションは、TiDB がフォロワーの分散をどのようにバランスさせるかを指定します。
-    -   デフォルトの`EVEN`スケジュール ルールにより、すべてのリージョンにわたってフォロワーが均等に分散されます。
-    -   十分な数のFollowerレプリカが`PRIMARY_REGION` (つまり`us-east-1` ) に配置されるようにするには、 `MAJORITY_IN_PRIMARY`スケジュール ルールを使用できます。このスケジュール ルールでは、可用性を犠牲にして、レイテンシーのレイテンシが低くなります。プライマリ リージョンに障害が発生した場合、 `MAJORITY_IN_PRIMARY`自動フェイルオーバーは提供されません。
+-   `PRIMARY_REGION` specifies the distribution region of the Leaders. You can only specify one region in this option.
+-   The `SCHEDULE` option specifies how TiDB balances the distribution of Followers.
+    -   The default `EVEN` scheduling rule ensures a balanced distribution of Followers across all regions.
+    -   If you want to ensure a sufficient number of Follower replicas are placed in the `PRIMARY_REGION` (that is, `us-east-1`), you can use the `MAJORITY_IN_PRIMARY` scheduling rule. This scheduling rule provides lower latency transactions at the expense of some availability. If the primary region fails, `MAJORITY_IN_PRIMARY` does not provide automatic failover.
 
-## データ分離の例 {#data-isolation-examples}
+## Data isolation examples {#data-isolation-examples}
 
-次の例のように、配置ポリシーを作成するときに、各ポリシーに制約を構成して、指定された`app`ラベルを持つ TiKV ノードにデータを配置するように要求できます。
+As in the following example, when creating placement policies, you can configure a constraint for each policy, which requires data to be placed on TiKV nodes with the specified `app` label.
 
 ```sql
 CREATE PLACEMENT POLICY app_order CONSTRAINTS="[+app=order]";
@@ -444,37 +444,37 @@ CREATE TABLE list (id INT, name VARCHAR(50), purchased DATE)
 PLACEMENT POLICY=app_list
 ```
 
-この例では、制約は`[+app=order]`などのリスト形式を使用して指定されています。 `{+app=order: 3}`などの辞書形式を使用して指定することもできます。
+In this example, the constraints are specified using the list format, such as `[+app=order]`. You can also specify them using the dictionary format, such as `{+app=order: 3}`.
 
-例のステートメントを実行すると、TiDB は`app_order`データを`app`ラベルを持つ TiKV ノードに`order`として配置し、 `app_list`データを`app`ラベルを持つ TiKV ノードに`list_collection`として配置して、storage内での物理的なデータ分離を実現します。
+After executing the statements in the example, TiDB will place the `app_order` data on TiKV nodes with the `app` label as `order`, and place the `app_list` data on TiKV nodes with the `app` label as `list_collection`, thus achieving physical data isolation in storage.
 
-## 互換性 {#compatibility}
+## Compatibility {#compatibility}
 
-## 他の機能との互換性 {#compatibility-with-other-features}
+## Compatibility with other features {#compatibility-with-other-features}
 
--   一時テーブルは配置ポリシーをサポートしていません。
--   配置ポリシーは、保存中のデータが正しい TiKV ノードに存在することを保証するだけで、転送中のデータ (ユーザー クエリまたは内部操作経由) が特定のリージョンでのみ発生することを保証するものではありません。
--   データのTiFlashレプリカを構成するには、配置ポリシーを使用するのではなく、 [TiFlashレプリカを作成する](/tiflash/create-tiflash-replicas.md)実行する必要があります。
--   構文糖衣規則は設定`PRIMARY_REGION`と`REGIONS`に許可されています。将来的には`PRIMARY_RACK` 、 `PRIMARY_ZONE` 、 `PRIMARY_HOST`にも多様性を追加する予定です。 [問題 #18030](https://github.com/pingcap/tidb/issues/18030)参照してください。
+-   Temporary tables do not support placement policies.
+-   Placement policies only ensure that data at rest resides on the correct TiKV nodes but do not guarantee that data in transit (via either user queries or internal operations) only occurs in a specific region.
+-   To configure TiFlash replicas for your data, you need to [create TiFlash replicas](/tiflash/create-tiflash-replicas.md) rather than using placement policies.
+-   Syntactic sugar rules are permitted for setting `PRIMARY_REGION` and `REGIONS`. In the future, we plan to add varieties for `PRIMARY_RACK`, `PRIMARY_ZONE`, and `PRIMARY_HOST`. See [issue #18030](https://github.com/pingcap/tidb/issues/18030).
 
-## ツールとの互換性 {#compatibility-with-tools}
+## Compatibility with tools {#compatibility-with-tools}
 
 <CustomContent platform="tidb">
 
-| ツール名           | サポートされる最小バージョン | 説明                                                                                                                                                                                                   |
-| -------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| バックアップと復元 (BR) | 6.0            | v6.0 より前のBRでは、配置ポリシーのバックアップと復元はサポートされていません。詳細については、 [配置ルールをクラスターに復元するとエラーが発生するのはなぜですか?](/faq/backup-and-restore-faq.md#why-does-an-error-occur-when-i-restore-placement-rules-to-a-cluster)参照してください。 |
-| TiDB Lightning | まだ互換性がありません    | TiDB Lightningが配置ポリシーを含むバックアップデータをインポートするとエラーが報告される                                                                                                                                                  |
-| ティCDC          | 6.0            | 配置ポリシーを無視し、下流にポリシーを複製しません。                                                                                                                                                                           |
-| TiDBBinlog     | 6.0            | 配置ポリシーを無視し、下流にポリシーを複製しません。                                                                                                                                                                           |
+| Tool Name                  | Minimum supported version | Description                                                                                                                                                                                                                                                                        |
+| -------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backup &#x26; Restore (BR) | 6.0                       | Before v6.0, BR does not support backing up and restoring placement policies. For more information, see [Why does an error occur when I restore placement rules to a cluster](/faq/backup-and-restore-faq.md#why-does-an-error-occur-when-i-restore-placement-rules-to-a-cluster). |
+| TiDB Lightning             | Not compatible yet        | An error is reported when TiDB Lightning imports backup data that contains placement policies                                                                                                                                                                                      |
+| TiCDC                      | 6.0                       | Ignores placement policies, and does not replicate the policies to the downstream                                                                                                                                                                                                  |
+| TiDB Binlog                | 6.0                       | Ignores placement policies, and does not replicate the policies to the downstream                                                                                                                                                                                                  |
 
 </CustomContent>
 
 <CustomContent platform="tidb-cloud">
 
-| ツール名           | サポートされる最小バージョン | 説明                                                  |
-| -------------- | -------------- | --------------------------------------------------- |
-| TiDB Lightning | まだ互換性がありません    | TiDB Lightningが配置ポリシーを含むバックアップデータをインポートするとエラーが報告される |
-| ティCDC          | 6.0            | 配置ポリシーを無視し、下流にポリシーを複製しません。                          |
+| Tool Name      | Minimum supported version | Description                                                                                   |
+| -------------- | ------------------------- | --------------------------------------------------------------------------------------------- |
+| TiDB Lightning | Not compatible yet        | An error is reported when TiDB Lightning imports backup data that contains placement policies |
+| TiCDC          | 6.0                       | Ignores placement policies, and does not replicate the policies to the downstream             |
 
 </CustomContent>

@@ -3,38 +3,38 @@ title: PingCAP Documentation
 hide_sidebar: true
 hide_commit: true
 hide_leftNav: true
-summary: TiDBドキュメントでは、データ移行やアプリケーション構築など、 TiDB CloudとTiDB Self-Managedの使用方法に関するガイドとリファレンスを提供しています。TiDB TiDB Cloudは、クラウドネイティブな分散SQLデータベースのパワーに簡単にアクセスできる、フルマネージドのDatabase-as-a-Service（データベース・アズ・ア・サービス）です。TiDBは、MySQLとの互換性、水平スケーラビリティ、高可用性を備えたオープンソースの分散SQLデータベースです。開発者は、アプリケーション開発に関するドキュメントにアクセスしたり、TiDB Playground、PingCAP Education、コミュニティ参加の機会などの追加リソースを活用したりできます。
+summary: TiDB Documentation provides how-to guides and references for using TiDB Cloud and TiDB Self-Managed, including data migration and application building. TiDB Cloud is a fully-managed Database-as-a-Service, offering easy access to the power of a cloud-native, distributed SQL database. TiDB is an open-source distributed SQL database with MySQL compatibility, horizontal scalability, and high availability. Developers can access documentation for application development and explore additional resources such as TiDB Playground, PingCAP Education, and community engagement opportunities.
 ---
 
-<DocHomeContainer title="TiDB ドキュメント" subTitle="Explore the how-to guides and references you need to use TiDB Cloud Serverless, TiDB Cloud Dedicated and TiDB Self-Managed, migrate data, and build your applications on the database." ctaLabel="Start TiDB Cloud Serverless for Free" ctaLink="https://tidbcloud.com/free-trial">
+<DocHomeContainer title="TiDB Documentation" subTitle="Explore the how-to guides and references you need to use {{{ .starter }}}, TiDB Cloud Dedicated and TiDB Self-Managed, migrate data, and build your applications on the database." ctaLabel="Start {{{ .starter }}} for Free" ctaLink="https://tidbcloud.com/free-trial">
 
 <DocHomeSection label="TiDB Cloud" anchor="tidb-cloud" id="tidb-cloud">
 
-TiDB Cloud は、TiDB の優れた機能すべてをクラウドに提供する、完全に管理された Database-as-a-Service (DBaaS) であり、データベースの複雑さではなくアプリケーションに集中できます。
+TiDB Cloud is a fully-managed Database-as-a-Service (DBaaS) that brings everything great about TiDB to your cloud, letting you focus on your applications instead of the complexities of your database.
 
 <DocHomeCardContainer>
 
 <DocHomeCard href="/tidbcloud/tidb-cloud-intro" label="What is TiDB Cloud" icon="cloud-product-mauve">
 
-使いやすいデータベースとしてのTiDB Cloudとその主な機能について学びます。
+Learn what TiDB Cloud is as an easy-to-use database and its key features.
 
 </DocHomeCard>
 
-<DocHomeCard href="/tidbcloud/tidb-cloud-quickstart" label="Get started with TiDB Cloud Serverless" icon="cloud-getstarted-mauve">
+<DocHomeCard href="/tidbcloud/tidb-cloud-quickstart" label="Get started with {{{ .starter }}}" icon="cloud-getstarted-mauve">
 
-TiDB Cloudを簡単に使い始めるためのガイド。
+Guide for an easy way to get started with TiDB Cloud.
 
 </DocHomeCard>
 
 <DocHomeCard href="/tidbcloud/dev-guide-overview" label="Developer Guide" icon="cloud-developer-mauve">
 
-アプリケーションを好みの言語やフレームワークに接続します。
+Connect your application with the languages and frameworks you prefer.
 
 </DocHomeCard>
 
-<DocHomeCard href="/tidbcloud/vector-search-overview" label="Vector Search in TiDB Cloud Serverless (Beta)" icon="cloud-vector-mauve">
+<DocHomeCard href="/tidbcloud/vector-search-overview" label="Vector Search in {{{ .starter }}} (Beta)" icon="cloud-vector-mauve">
 
-AI アプリケーションを構築するには、 TiDB Cloud Serverless の Vector Search のネイティブ サポートを検討してください。
+Explore native support of Vector Search in {{{ .starter }}} to build your AI application.
 
 </DocHomeCard>
 
@@ -52,49 +52,49 @@ AI アプリケーションを構築するには、 TiDB Cloud Serverless の Ve
 
 -->
 
-TiDBは、ハイブリッドトランザクションおよび分析処理（HTAP）ワークロードをサポートするオープンソースの分散SQLデータベースです。MySQLと互換性があり、水平スケーラビリティ、強力な一貫性、高可用性を備えています。TiDBは、セルフホスト環境またはクラウド上に導入できます。
+TiDB is an open-source distributed SQL database that supports Hybrid Transactional and Analytical Processing (HTAP) workloads. It is MySQL compatible and features horizontal scalability, strong consistency, and high availability. You can deploy TiDB in a self-hosted environment or on the cloud.
 
 <DocHomeCardContainer>
 
 <DocHomeCard href="/tidb/stable/overview" label="What is TiDB Self-Managed" icon="oss-product-blue">
 
-TiDB Self-Managed とその主な機能について説明します。
+Learn what is TiDB Self-Managed and its key features.
 
 </DocHomeCard>
 
 <DocHomeCard href="/tidb/stable/quick-start-with-tidb" label="Get started with TiDB Self-Managed" icon="oss-getstarted-blue">
 
-TiDB Self-Managed を使い始めるための最も簡単な方法を説明します。
+Walks you through the quickest way to get started with TiDB Self-Managed.
 
 </DocHomeCard>
 
 <DocHomeCard href="/tidb/stable/production-deployment-using-tiup" label="Deploy a Local TiDB Cluster" icon="oss-deploy-blue">
 
-本番環境で TiDB をローカルにデプロイする方法を学習します。
+Learn how to deploy TiDB locally in a production environment.
 
 </DocHomeCard>
 
 <DocHomeCard href="/tidb/stable/dev-guide-overview" label="Developer Guide" icon="oss-developer-blue">
 
-TiDB Self-Managed を使用するアプリケーション開発者向け。
+For application developers using TiDB Self-Managed.
 
 </DocHomeCard>
 
 <DocHomeCard href="/tidb/stable/mysql-compatibility" label="MySQL Compatibility" icon="oss-mysql-blue">
 
-TiDB は、MySQL プロトコルおよびMySQL 5.7と MySQL 8.0 の共通機能と構文と高い互換性があります。
+TiDB is highly compatible with the MySQL protocol and the common features and syntax of MySQL 5.7 and MySQL 8.0.
 
 </DocHomeCard>
 
 <DocHomeCard href="/tidb/dev/tidb-roadmap" label="TiDB Self-Managed Roadmap" icon="oss-roadmap-blue">
 
-TiDB Self-Managed の計画されている機能とリリース日。
+Planned features and release dates for TiDB Self-Managed.
 
 </DocHomeCard>
 
 </DocHomeCardContainer>
 
-オープンソースの TiDB プラットフォームは Apache 2.0 ライセンスの下でリリースされ、コミュニティによってサポートされています[GitHubでビュー](https://github.com/pingcap/tidb)
+The open-source TiDB platform is released under the Apache 2.0 license and is supported by the community. [View on GitHub](https://github.com/pingcap/tidb)
 
 </DocHomeSection>
 
@@ -104,49 +104,49 @@ TiDB Self-Managed の計画されている機能とリリース日。
 
 <DocHomeCard href="https://www.pingcap.com/education/" label="Learning Center" icon="global-tidb-education">
 
-適切に設計されたオンライン コースとインストラクター主導のトレーニングを通じて、 TiDB Cloudと TiDB Self-Managed を学習します。
+Learn TiDB Cloud and TiDB Self-Managed through well-designed online courses and instructor-led training.
 
 </DocHomeCard>
 
 <DocHomeCard href="https://www.pingcap.com/blog/" label="Blog" icon="global-tidb-blog">
 
-TiDB Cloudと TiDB Self-Managed に関する優れた記事をお読みください。
+Read great articles about TiDB Cloud and TiDB Self-Managed.
 
 </DocHomeCard>
 
 <DocHomeCard href="https://www.pingcap.com/event/" label="Events" icon="global-tidb-events">
 
-PingCAP とコミュニティが主催するイベントについて学びます。
+Learn about events hosted by PingCAP and the community.
 
 </DocHomeCard>
 
 <DocHomeCard href="https://www.pingcap.com/ebook-whitepaper/" label="eBooks & Papers" icon="global-tidb-ebook">
 
-電子書籍と論文をダウンロードしてください。
+Download eBooks and papers.
 
 </DocHomeCard>
 
 <DocHomeCard href="https://www.pingcap.com/videos/" label="Videos" icon="global-tidb-video">
 
-TiDB とさまざまな使用例を説明する短いビデオのコンピレーションをご覧ください。
+Watch a compilation of short videos describing TiDB and various use cases.
 
 </DocHomeCard>
 
 <DocHomeCard href="https://ossinsight.io/" label="OSS Insight" icon="global-tidb-ossinsight">
 
-TiDB Cloudを活用した、あらゆる GitHub リポジトリの詳細な分析を提供する強力な洞察ツールです。
+A powerful insight tool that provides in-depth analysis of any GitHub repository, powered by TiDB Cloud.
 
 </DocHomeCard>
 
 <DocHomeCard href="https://play.tidbcloud.com/?utm_source=docs&utm_medium=home_more_resources" label="Playground" icon="global-tidb-playground">
 
-登録なしで TiDB の機能を体験してください。
+Experience the capabilities of TiDB without registration.
 
 </DocHomeCard>
 
 <DocHomeCard href="https://discord.gg/DQZ2dy3cuc?utm_source=doc" label="Join our community on Discord" icon="global-tidb-discord" colspan="2" actionBtnLabel="Join Community" ctaGraphic="global-iso-hand">
 
-Discord に参加するか、貢献者になってください。
+Join us on Discord or become a contributor.
 
 </DocHomeCard>
 

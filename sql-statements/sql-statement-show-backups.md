@@ -1,23 +1,23 @@
 ---
 title: SHOW [BACKUPS|RESTORES] | TiDB SQL Statement Reference
-summary: TiDB データベースに対する SHOW [BACKUPS|RESTORES] の使用法の概要。
+summary: An overview of the usage of SHOW [BACKUPS|RESTORES] for the TiDB database.
 ---
 
-# [バックアップ|復元]を表示 {#show-backups-restores}
+# SHOW [BACKUPS|RESTORES] {#show-backups-restores}
 
-これらのステートメントは、TiDB インスタンスで実行されたキューに入れられたタスク、実行中のタスク、最近完了したタスク[`BACKUP`](/sql-statements/sql-statement-backup.md)と[`RESTORE`](/sql-statements/sql-statement-restore.md)リストを表示します。
+These statements show a list of all queued, running and recently finished [`BACKUP`](/sql-statements/sql-statement-backup.md) and [`RESTORE`](/sql-statements/sql-statement-restore.md) tasks that were executed on a TiDB instance.
 
-どちらのステートメントも、実行には`SUPER`権限が必要です。
+Both statements require `SUPER` privilege to run.
 
-`BACKUP`タスクを照会するには`SHOW BACKUPS`使用し、 `RESTORE`タスクを照会するには`SHOW RESTORES`使用します。
+Use `SHOW BACKUPS` to query `BACKUP` tasks and use `SHOW RESTORES` to query `RESTORE` tasks.
 
-> **注記：**
+> **Note:**
 >
-> この機能は[TiDB Cloudサーバーレス](https://docs.pingcap.com/tidbcloud/select-cluster-tier#tidb-cloud-serverless)クラスターでは使用できません。
+> This feature is not available on [{{{ .starter }}}](https://docs.pingcap.com/tidbcloud/select-cluster-tier#tidb-cloud-serverless) clusters.
 
-`br`コマンドライン ツールで開始されたバックアップと復元は表示されません。
+Backups and restores that were started with the `br` commandline tool are not shown.
 
-## 概要 {#synopsis}
+## Synopsis {#synopsis}
 
 ```ebnf+diagram
 ShowBRIEStmt ::=
@@ -28,15 +28,15 @@ ShowLikeOrWhere ::=
 |   "WHERE" Expression
 ```
 
-## 例 {#examples}
+## Examples {#examples}
 
-1 つの接続で、次のステートメントを実行します。
+In one connection, execute the following statement:
 
 ```sql
 BACKUP DATABASE `test` TO 's3://example-bucket/backup-01';
 ```
 
-バックアップが完了する前に、新しい接続で`SHOW BACKUPS`実行します。
+Before the backup completes, run `SHOW BACKUPS` in a new connection:
 
 ```sql
 SHOW BACKUPS;
@@ -51,28 +51,28 @@ SHOW BACKUPS;
 1 row in set (0.00 sec)
 ```
 
-上記の結果の最初の行は次のように説明されます。
+The first row of the result above is described as follows:
 
-| カラム              | 説明                                                                   |
-| :--------------- | :------------------------------------------------------------------- |
-| `Destination`    | 宛先 URL (秘密鍵の漏洩を防ぐため、すべてのパラメータを削除)                                    |
-| `State`          | タスクの状態                                                               |
-| `Progress`       | 現在の状態の進捗状況の推定値（パーセンテージ）                                              |
-| `Queue_time`     | タスクがキューに入れられたとき                                                      |
-| `Execution_time` | タスクが開始されたとき。キューイングタスクの場合は値は`0000-00-00 00:00:00`です。                  |
-| `Finish_time`    | タスクが終了したときのタイムスタンプ。キューイングおよび実行中のタスクの場合、値は`0000-00-00 00:00:00`になります。 |
-| `Connection`     | このタスクを実行している接続ID                                                     |
-| `Message`        | 詳細を記載したメッセージ                                                         |
+| Column           | Description                                                                                             |
+| :--------------- | :------------------------------------------------------------------------------------------------------ |
+| `Destination`    | The destination URL (with all parameters stripped to avoid leaking secret keys)                         |
+| `State`          | State of the task                                                                                       |
+| `Progress`       | Estimated progress in the current state as a percentage                                                 |
+| `Queue_time`     | When the task was queued                                                                                |
+| `Execution_time` | When the task was started; the value is `0000-00-00 00:00:00` for queueing tasks                        |
+| `Finish_time`    | The timestamp when the task finished; the value is `0000-00-00 00:00:00` for queueing and running tasks |
+| `Connection`     | Connection ID running this task                                                                         |
+| `Message`        | Message with details                                                                                    |
 
-考えられる状態は次のとおりです。
+The possible states are:
 
-| 州      | 説明          |
-| :----- | :---------- |
-| バックアップ | バックアップの作成   |
-| 待って    | 実行待ち        |
-| チェックサム | チェックサム操作の実行 |
+| State    | Description                  |
+| :------- | :--------------------------- |
+| Backup   | Making a backup              |
+| Wait     | Waiting for execution        |
+| Checksum | Running a checksum operation |
 
-接続 ID は、 [`KILL TIDB QUERY`](/sql-statements/sql-statement-kill.md)ステートメントを介してバックアップ/復元タスクをキャンセルするために使用できます。
+The connection ID can be used to cancel a backup/restore task via the [`KILL TIDB QUERY`](/sql-statements/sql-statement-kill.md) statement.
 
 ```sql
 KILL TIDB QUERY 4;
@@ -82,25 +82,25 @@ KILL TIDB QUERY 4;
 Query OK, 0 rows affected (0.00 sec)
 ```
 
-### フィルタリング {#filtering}
+### Filtering {#filtering}
 
-`LIKE`句を使用して、宛先 URL をワイルドカード式と照合し、タスクをフィルター処理します。
+Use the `LIKE` clause to filter out tasks by matching the destination URL against a wildcard expression.
 
 ```sql
 SHOW BACKUPS LIKE 's3://%';
 ```
 
-列でフィルタリングするには、 `WHERE`句を使用します。
+Use the `WHERE` clause to filter by columns.
 
 ```sql
 SHOW BACKUPS WHERE `Progress` < 25.0;
 ```
 
-## MySQL 互換性 {#mysql-compatibility}
+## MySQL compatibility {#mysql-compatibility}
 
-このステートメントは、MySQL 構文に対する TiDB 拡張です。
+This statement is a TiDB extension to MySQL syntax.
 
-## 参照 {#see-also}
+## See also {#see-also}
 
--   [バックアップ](/sql-statements/sql-statement-backup.md)
--   [復元する](/sql-statements/sql-statement-restore.md)
+-   [BACKUP](/sql-statements/sql-statement-backup.md)
+-   [RESTORE](/sql-statements/sql-statement-restore.md)
