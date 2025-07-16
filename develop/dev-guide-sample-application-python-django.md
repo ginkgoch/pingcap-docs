@@ -1,116 +1,116 @@
 ---
 title: Connect to TiDB with Django
-summary: Djangoを使ってTiDBに接続する方法を学びましょう。このチュートリアルでは、Djangoを使ってTiDBを操作するPythonのサンプルコードスニペットを紹介します。
+summary: Learn how to connect to TiDB using Django. This tutorial gives Python sample code snippets that work with TiDB using Django.
 ---
 
-# DjangoでTiDBに接続する {#connect-to-tidb-with-django}
+# Connect to TiDB with Django {#connect-to-tidb-with-django}
 
-TiDB は MySQL 互換のデータベースであり、 [ジャンゴ](https://www.djangoproject.com)強力なオブジェクト リレーショナル マッパー (ORM) ライブラリを含む Python 用の人気の Web フレームワークです。
+TiDB is a MySQL-compatible database, and [Django](https://www.djangoproject.com) is a popular web framework for Python, which includes a powerful Object Relational Mapper (ORM) library.
 
-このチュートリアルでは、TiDB と Django を使用して次のタスクを実行する方法を学習します。
+In this tutorial, you can learn how to use TiDB and Django to accomplish the following tasks:
 
--   環境を設定します。
--   Django を使用して TiDB クラスターに接続します。
--   アプリケーションをビルドして実行します。オプションで、基本的なCRUD操作のサンプルコードスニペットもご利用いただけます。
+-   Set up your environment.
+-   Connect to your TiDB cluster using Django.
+-   Build and run your application. Optionally, you can find sample code snippets for basic CRUD operations.
 
-> **注記：**
+> **Note:**
 >
-> このチュートリアルは、 TiDB Cloud Serverless、 TiDB Cloud Dedicated、および TiDB Self-Managed クラスターで機能します。
+> This tutorial works with {{{ .starter }}}, TiDB Cloud Dedicated, and TiDB Self-Managed clusters.
 
-## 前提条件 {#prerequisites}
+## Prerequisites {#prerequisites}
 
-このチュートリアルを完了するには、次のものが必要です。
+To complete this tutorial, you need:
 
--   [Python 3.8以上](https://www.python.org/downloads/) 。
--   [ギット](https://git-scm.com/downloads) 。
--   TiDB クラスター。
+-   [Python 3.8 or higher](https://www.python.org/downloads/).
+-   [Git](https://git-scm.com/downloads).
+-   A TiDB cluster.
 
 <CustomContent platform="tidb">
 
-**TiDB クラスターがない場合は、次のように作成できます。**
+**If you don't have a TiDB cluster, you can create one as follows:**
 
--   (推奨) [TiDB Cloud Serverless クラスターの作成](/develop/dev-guide-build-cluster-in-cloud.md)に従って、独自のTiDB Cloudクラスターを作成します。
--   [ローカルテストTiDBクラスタをデプロイ](/quick-start-with-tidb.md#deploy-a-local-test-cluster)または[本番のTiDBクラスタをデプロイ](/production-deployment-using-tiup.md)に従ってローカル クラスターを作成します。
+-   (Recommended) Follow [Creating a {{{ .starter }}} cluster](/develop/dev-guide-build-cluster-in-cloud.md) to create your own TiDB Cloud cluster.
+-   Follow [Deploy a local test TiDB cluster](/quick-start-with-tidb.md#deploy-a-local-test-cluster) or [Deploy a production TiDB cluster](/production-deployment-using-tiup.md) to create a local cluster.
 
 </CustomContent>
 <CustomContent platform="tidb-cloud">
 
-**TiDB クラスターがない場合は、次のように作成できます。**
+**If you don't have a TiDB cluster, you can create one as follows:**
 
--   (推奨) [TiDB Cloud Serverless クラスターの作成](/develop/dev-guide-build-cluster-in-cloud.md)に従って、独自のTiDB Cloudクラスターを作成します。
--   [ローカルテストTiDBクラスタをデプロイ](https://docs.pingcap.com/tidb/stable/quick-start-with-tidb#deploy-a-local-test-cluster)または[本番のTiDBクラスタをデプロイ](https://docs.pingcap.com/tidb/stable/production-deployment-using-tiup)に従ってローカル クラスターを作成します。
+-   (Recommended) Follow [Creating a {{{ .starter }}} cluster](/develop/dev-guide-build-cluster-in-cloud.md) to create your own TiDB Cloud cluster.
+-   Follow [Deploy a local test TiDB cluster](https://docs.pingcap.com/tidb/stable/quick-start-with-tidb#deploy-a-local-test-cluster) or [Deploy a production TiDB cluster](https://docs.pingcap.com/tidb/stable/production-deployment-using-tiup) to create a local cluster.
 
 </CustomContent>
 
-## サンプルアプリを実行してTiDBに接続する {#run-the-sample-app-to-connect-to-tidb}
+## Run the sample app to connect to TiDB {#run-the-sample-app-to-connect-to-tidb}
 
-このセクションでは、サンプル アプリケーション コードを実行して TiDB に接続する方法を説明します。
+This section demonstrates how to run the sample application code and connect to TiDB.
 
-### ステップ1: サンプルアプリのリポジトリをクローンする {#step-1-clone-the-sample-app-repository}
+### Step 1: Clone the sample app repository {#step-1-clone-the-sample-app-repository}
 
-サンプル コード リポジトリのクローンを作成するには、ターミナル ウィンドウで次のコマンドを実行します。
+Run the following commands in your terminal window to clone the sample code repository:
 
 ```shell
 git clone https://github.com/tidb-samples/tidb-python-django-quickstart.git
 cd tidb-python-django-quickstart
 ```
 
-### ステップ2: 依存関係をインストールする {#step-2-install-dependencies}
+### Step 2: Install dependencies {#step-2-install-dependencies}
 
-次のコマンドを実行して、サンプル アプリに必要なパッケージ (Django、django-tidb、mysqlclient を含む) をインストールします。
+Run the following command to install the required packages (including Django, django-tidb, and mysqlclient) for the sample app:
 
 ```shell
 pip install -r requirements.txt
 ```
 
-mysqlclient のインストールで問題が発生した場合は、 [mysqlclient 公式ドキュメント](https://github.com/PyMySQL/mysqlclient#install)を参照してください。
+If you encounter installation issues with mysqlclient, refer to the [mysqlclient official documentation](https://github.com/PyMySQL/mysqlclient#install).
 
-#### <code>django-tidb</code>とは何ですか? {#what-is-code-django-tidb-code}
+#### What is <code>django-tidb</code>? {#what-is-code-django-tidb-code}
 
-`django-tidb` 、TiDB と Django 間の互換性の問題を解決する Django 用の TiDB 方言です。
+`django-tidb` is a TiDB dialect for Django that resolves compatibility issues between TiDB and Django.
 
-`django-tidb`インストールするには、お使いのDjangoのバージョンに合ったバージョンを選択してください。例えば、 `django==4.2.*`使用している場合は`django-tidb==4.2.*`インストールしてください。マイナーバージョンは同じである必要はありません。最新のマイナーバージョンを使用することをお勧めします。
+To install `django-tidb`, choose a version that matches your Django version. For example, if you are using `django==4.2.*`, install `django-tidb==4.2.*`. The minor version does not need to be the same. It is recommended to use the latest minor version.
 
-詳細については[django-tidbリポジトリ](https://github.com/pingcap/django-tidb)を参照してください。
+For more information, refer to [django-tidb repository](https://github.com/pingcap/django-tidb).
 
-### ステップ3: 接続情報を構成する {#step-3-configure-connection-information}
+### Step 3: Configure connection information {#step-3-configure-connection-information}
 
-選択した TiDB デプロイメント オプションに応じて、TiDB クラスターに接続します。
+Connect to your TiDB cluster depending on the TiDB deployment option you've selected.
 
 <SimpleTab>
-<div label="TiDB Cloud Serverless">
+<div label="{{{ .starter }}}">
 
-1.  [**クラスター**](https://tidbcloud.com/project/clusters)ページに移動し、ターゲット クラスターの名前をクリックして概要ページに移動します。
+1.  Navigate to the [**Clusters**](https://tidbcloud.com/project/clusters) page, and then click the name of your target cluster to go to its overview page.
 
-2.  右上隅の**「接続」**をクリックします。接続ダイアログが表示されます。
+2.  Click **Connect** in the upper-right corner. A connection dialog is displayed.
 
-3.  接続ダイアログの構成が動作環境と一致していることを確認します。
+3.  Ensure the configurations in the connection dialog match your operating environment.
 
-    -   **接続タイプ**は`Public`に設定されています
+    -   **Connection Type** is set to `Public`
 
-    -   **ブランチ**は`main`に設定されています
+    -   **Branch** is set to `main`
 
-    -   **接続先が**`General`に設定されています
+    -   **Connect With** is set to `General`
 
-    -   **オペレーティング システムは**環境に適合します。
+    -   **Operating System** matches your environment.
 
-    > **ヒント：**
+    > **Tip:**
     >
-    > プログラムが Windows Subsystem for Linux (WSL) で実行されている場合は、対応する Linux ディストリビューションに切り替えます。
+    > If your program is running in Windows Subsystem for Linux (WSL), switch to the corresponding Linux distribution.
 
-4.  ランダムなパスワードを作成するには、 **「パスワードの生成」を**クリックします。
+4.  Click **Generate Password** to create a random password.
 
-    > **ヒント：**
+    > **Tip:**
     >
-    > 以前にパスワードを作成したことがある場合は、元のパスワードを使用するか、 **「パスワードのリセット」を**クリックして新しいパスワードを生成することができます。
+    > If you have created a password before, you can either use the original password or click **Reset Password** to generate a new one.
 
-5.  次のコマンドを実行して`.env.example`コピーし、名前を`.env`に変更します。
+5.  Run the following command to copy `.env.example` and rename it to `.env`:
 
     ```shell
     cp .env.example .env
     ```
 
-6.  対応する接続文字列をコピーして、 `.env`ファイルに貼り付けます。結果の例は次のとおりです。
+6.  Copy and paste the corresponding connection string into the `.env` file. The example result is as follows:
 
     ```dotenv
     TIDB_HOST='{host}'  # e.g. gateway01.ap-northeast-1.prod.aws.tidbcloud.com
@@ -121,32 +121,32 @@ mysqlclient のインストールで問題が発生した場合は、 [mysqlclie
     CA_PATH='{ssl_ca}'  # e.g. /etc/ssl/certs/ca-certificates.crt (Debian / Ubuntu / Arch)
     ```
 
-    プレースホルダー`{}` 、接続ダイアログから取得した接続パラメータに置き換えてください。
+    Be sure to replace the placeholders `{}` with the connection parameters obtained from the connection dialog.
 
-    TiDB Cloud Serverless は安全な接続を必要とします。mysqlclient の`ssl_mode`デフォルトで`PREFERRED`に設定されているため、 `CA_PATH`手動で指定する必要はありません。空のままにしておいてください。ただし、特別な理由により`CA_PATH`手動で指定する必要がある場合は、 [TiDB Cloud ServerlessへのTLS接続](https://docs.pingcap.com/tidbcloud/secure-connections-to-serverless-clusters)を参照して、さまざまなオペレーティングシステムの証明書パスを取得できます。
+    {{{ .starter }}} requires a secure connection. Since the `ssl_mode` of mysqlclient defaults to `PREFERRED`, you don't need to manually specify `CA_PATH`. Just leave it empty. But if you have a special reason to specify `CA_PATH` manually, you can refer to the [TLS connections to {{{ .starter }}}](https://docs.pingcap.com/tidbcloud/secure-connections-to-serverless-clusters) to get the certificate paths for different operating systems.
 
-7.  `.env`ファイルを保存します。
+7.  Save the `.env` file.
 
 </div>
 <div label="TiDB Cloud Dedicated">
 
-1.  [**クラスター**](https://tidbcloud.com/project/clusters)ページに移動し、ターゲット クラスターの名前をクリックして概要ページに移動します。
+1.  Navigate to the [**Clusters**](https://tidbcloud.com/project/clusters) page, and then click the name of your target cluster to go to its overview page.
 
-2.  右上隅の**「接続」**をクリックします。接続ダイアログが表示されます。
+2.  Click **Connect** in the upper-right corner. A connection dialog is displayed.
 
-3.  接続ダイアログで、 **[接続タイプ]**ドロップダウン リストから**[パブリック]**を選択し、 **[CA 証明書]**をクリックして CA 証明書をダウンロードします。
+3.  In the connection dialog, select **Public** from the **Connection Type** drop-down list, and then click **CA cert** to download the CA certificate.
 
-    IP アクセス リストをまだ設定していない場合は、 **「IP アクセス リストの設定」を**クリックするか、手順[IPアクセスリストを設定する](https://docs.pingcap.com/tidbcloud/configure-ip-access-list)に従って、最初の接続の前に設定してください。
+    If you have not configured the IP access list, click **Configure IP Access List** or follow the steps in [Configure an IP Access List](https://docs.pingcap.com/tidbcloud/configure-ip-access-list) to configure it before your first connection.
 
-    TiDB Cloud Dedicatedは、**パブリック**接続タイプに加えて、**プライベートエンドポイント**と**VPCピアリング**接続タイプもサポートしています。詳細については、 [TiDB Cloud専用クラスタに接続する](https://docs.pingcap.com/tidbcloud/connect-to-tidb-cluster)ご覧ください。
+    In addition to the **Public** connection type, TiDB Cloud Dedicated supports **Private Endpoint** and **VPC Peering** connection types. For more information, see [Connect to Your TiDB Cloud Dedicated Cluster](https://docs.pingcap.com/tidbcloud/connect-to-tidb-cluster).
 
-4.  次のコマンドを実行して`.env.example`コピーし、名前を`.env`に変更します。
+4.  Run the following command to copy `.env.example` and rename it to `.env`:
 
     ```shell
     cp .env.example .env
     ```
 
-5.  対応する接続文字列をコピーして、 `.env`ファイルに貼り付けます。結果の例は次のとおりです。
+5.  Copy and paste the corresponding connection string into the `.env` file. The example result is as follows:
 
     ```dotenv
     TIDB_HOST='{host}'  # e.g. tidb.xxxx.clusters.tidb-cloud.com
@@ -157,20 +157,20 @@ mysqlclient のインストールで問題が発生した場合は、 [mysqlclie
     CA_PATH='{your-downloaded-ca-path}'
     ```
 
-    プレースホルダー`{}`接続ダイアログから取得した接続パラメータに置き換え、 `CA_PATH`前の手順でダウンロードした証明書パスで構成してください。
+    Be sure to replace the placeholders `{}` with the connection parameters obtained from the connection dialog, and configure `CA_PATH` with the certificate path downloaded in the previous step.
 
-6.  `.env`ファイルを保存します。
+6.  Save the `.env` file.
 
 </div>
 <div label="TiDB Self-Managed">
 
-1.  次のコマンドを実行して`.env.example`コピーし、名前を`.env`に変更します。
+1.  Run the following command to copy `.env.example` and rename it to `.env`:
 
     ```shell
     cp .env.example .env
     ```
 
-2.  対応する接続文字列をコピーして、 `.env`ファイルに貼り付けます。結果の例は次のとおりです。
+2.  Copy and paste the corresponding connection string into the `.env` file. The example result is as follows:
 
     ```dotenv
     TIDB_HOST='{tidb_server_host}'
@@ -180,53 +180,53 @@ mysqlclient のインストールで問題が発生した場合は、 [mysqlclie
     TIDB_DB_NAME='test'
     ```
 
-    プレースホルダー`{}`接続パラメータに置き換え、 `CA_PATH`行を削除してください。TiDB をローカルで実行している場合、デフォルトのホストアドレスは`127.0.0.1`で、パスワードは空です。
+    Be sure to replace the placeholders `{}` with the connection parameters, and remove the `CA_PATH` line. If you are running TiDB locally, the default host address is `127.0.0.1`, and the password is empty.
 
-3.  `.env`ファイルを保存します。
+3.  Save the `.env` file.
 
 </div>
 </SimpleTab>
 
-### ステップ4: データベースを初期化する {#step-4-initialize-the-database}
+### Step 4: Initialize the database {#step-4-initialize-the-database}
 
-プロジェクトのルート ディレクトリで、次のコマンドを実行してデータベースを初期化します。
+In the root directory of the project, run the following command to initialize the database:
 
 ```shell
 python manage.py migrate
 ```
 
-### ステップ5: サンプルアプリケーションを実行する {#step-5-run-the-sample-application}
+### Step 5: Run the sample application {#step-5-run-the-sample-application}
 
-1.  アプリケーションを開発モードで実行します。
+1.  Run the application in the development mode:
 
     ```shell
     python manage.py runserver
     ```
 
-    アプリケーションはデフォルトでポート`8000`で実行されます。別のポートを使用するには、コマンドにポート番号を追加します。例を以下に示します。
+    The application runs on port `8000` by default. To use a different port, you can append the port number to the command. The following is an example:
 
     ```shell
     python manage.py runserver 8080
     ```
 
-2.  アプリケーションにアクセスするには、ブラウザを開いて`http://localhost:8000/`に移動します。サンプルアプリケーションでは、次の操作を実行できます。
+2.  To access the application, open your browser and go to `http://localhost:8000/`. In the sample application, you can:
 
-    -   新しいプレーヤーを作成します。
-    -   プレーヤーを一括作成します。
-    -   すべてのプレーヤーをビュー。
-    -   プレーヤーを更新します。
-    -   プレーヤーを削除します。
-    -   2 人のプレイヤー間で商品を取引します。
+    -   Create a new player.
+    -   Bulk create players.
+    -   View all players.
+    -   Update a player.
+    -   Delete a player.
+    -   Trade goods between two players.
 
-## サンプルコードスニペット {#sample-code-snippets}
+## Sample code snippets {#sample-code-snippets}
 
-次のサンプル コード スニペットを参照して、独自のアプリケーション開発を完了することができます。
+You can refer to the following sample code snippets to complete your own application development.
 
-完全なサンプル コードとその実行方法については、 [tidb-サンプル/tidb-python-django-quickstart](https://github.com/tidb-samples/tidb-python-django-quickstart)リポジトリを参照してください。
+For complete sample code and how to run it, check out the [tidb-samples/tidb-python-django-quickstart](https://github.com/tidb-samples/tidb-python-django-quickstart) repository.
 
-### TiDBに接続する {#connect-to-tidb}
+### Connect to TiDB {#connect-to-tidb}
 
-ファイル`sample_project/settings.py`に次の構成を追加します。
+In the file `sample_project/settings.py`, add the following configurations:
 
 ```python
 DATABASES = {
@@ -251,9 +251,9 @@ if TIDB_CA_PATH:
     }
 ```
 
-`${tidb_host}` `${tidb_password}`および`${tidb_db_name}` `${tidb_port}` TiDB `${tidb_user}`の実際の値に置き換える必要`${ca_path}`あります。
+You need to replace `${tidb_host}`, `${tidb_port}`, `${tidb_user}`, `${tidb_password}`, `${tidb_db_name}`, and `${ca_path}` with the actual values of your TiDB cluster.
 
-### データモデルを定義する {#define-the-data-model}
+### Define the data model {#define-the-data-model}
 
 ```python
 from django.db import models
@@ -266,9 +266,9 @@ class Player(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 ```
 
-詳細については[Djangoモデル](https://docs.djangoproject.com/en/dev/topics/db/models/)を参照してください。
+For more information, refer to [Django models](https://docs.djangoproject.com/en/dev/topics/db/models/).
 
-### データを挿入する {#insert-data}
+### Insert data {#insert-data}
 
 ```python
 # insert a single object
@@ -282,9 +282,9 @@ Player.objects.bulk_create([
 ])
 ```
 
-詳細については[データを挿入する](/develop/dev-guide-insert-data.md)を参照してください。
+For more information, refer to [Insert data](/develop/dev-guide-insert-data.md).
 
-### クエリデータ {#query-data}
+### Query data {#query-data}
 
 ```python
 # get a single object
@@ -297,9 +297,9 @@ filtered_players = Player.objects.filter(name="player1")
 all_players = Player.objects.all()
 ```
 
-詳細については[クエリデータ](/develop/dev-guide-get-data-from-single-table.md)を参照してください。
+For more information, refer to [Query data](/develop/dev-guide-get-data-from-single-table.md).
 
-### データを更新する {#update-data}
+### Update data {#update-data}
 
 ```python
 # update a single object
@@ -311,9 +311,9 @@ player.save()
 Player.objects.filter(coins=100).update(coins=200)
 ```
 
-詳細については[データを更新する](/develop/dev-guide-update-data.md)を参照してください。
+For more information, refer to [Update data](/develop/dev-guide-update-data.md).
 
-### データを削除する {#delete-data}
+### Delete data {#delete-data}
 
 ```python
 # delete a single object
@@ -324,24 +324,24 @@ player.delete()
 Player.objects.filter(coins=100).delete()
 ```
 
-詳細については[データを削除する](/develop/dev-guide-delete-data.md)を参照してください。
+For more information, refer to [Delete data](/develop/dev-guide-delete-data.md).
 
-## 次のステップ {#next-steps}
+## Next steps {#next-steps}
 
--   Django の使い方を[Djangoのドキュメント](https://www.djangoproject.com/)から詳しく学びます。
--   [開発者ガイド](/develop/dev-guide-overview.md)の[データを挿入する](/develop/dev-guide-insert-data.md) 、 [データを更新する](/develop/dev-guide-update-data.md) 、 [データを削除する](/develop/dev-guide-delete-data.md) 、 [単一テーブルの読み取り](/develop/dev-guide-get-data-from-single-table.md) 、 [取引](/develop/dev-guide-transaction-overview.md) 、 [SQLパフォーマンスの最適化](/develop/dev-guide-optimize-sql-overview.md)などの章で、 TiDB アプリケーション開発のベスト プラクティスを学習します。
--   プロフェッショナル[TiDB開発者コース](https://www.pingcap.com/education/)を通じて学び、試験に合格すると[TiDB認定](https://www.pingcap.com/education/certification/)獲得します。
+-   Learn more usage of Django from [the documentation of Django](https://www.djangoproject.com/).
+-   Learn the best practices for TiDB application development with the chapters in the [Developer guide](/develop/dev-guide-overview.md), such as [Insert data](/develop/dev-guide-insert-data.md), [Update data](/develop/dev-guide-update-data.md), [Delete data](/develop/dev-guide-delete-data.md), [Single table reading](/develop/dev-guide-get-data-from-single-table.md), [Transactions](/develop/dev-guide-transaction-overview.md), and [SQL performance optimization](/develop/dev-guide-optimize-sql-overview.md).
+-   Learn through the professional [TiDB developer courses](https://www.pingcap.com/education/) and earn [TiDB certifications](https://www.pingcap.com/education/certification/) after passing the exam.
 
-## ヘルプが必要ですか? {#need-help}
+## Need help? {#need-help}
 
 <CustomContent platform="tidb">
 
-[不和](https://discord.gg/DQZ2dy3cuc?utm_source=doc)または[スラック](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs) 、あるいは[サポートチケットを送信する](/support.md)についてコミュニティに質問してください。
+Ask the community on [Discord](https://discord.gg/DQZ2dy3cuc?utm_source=doc) or [Slack](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs), or [submit a support ticket](/support.md).
 
 </CustomContent>
 
 <CustomContent platform="tidb-cloud">
 
-[不和](https://discord.gg/DQZ2dy3cuc?utm_source=doc)または[スラック](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs) 、あるいは[サポートチケットを送信する](https://tidb.support.pingcap.com/)についてコミュニティに質問してください。
+Ask the community on [Discord](https://discord.gg/DQZ2dy3cuc?utm_source=doc) or [Slack](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs), or [submit a support ticket](https://tidb.support.pingcap.com/).
 
 </CustomContent>

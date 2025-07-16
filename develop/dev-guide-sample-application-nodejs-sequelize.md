@@ -1,111 +1,111 @@
 ---
 title: Connect to TiDB with Sequelize
-summary: Sequelizeを使ってTiDBに接続する方法を学びましょう。このチュートリアルでは、Sequelizeを使ってTiDBを操作するNode.jsのサンプルコードスニペットを紹介します。
+summary: Learn how to connect to TiDB using Sequelize. This tutorial gives Node.js sample code snippets that work with TiDB using Sequelize.
 ---
 
-# Sequelize で TiDB に接続する {#connect-to-tidb-with-sequelize}
+# Connect to TiDB with Sequelize {#connect-to-tidb-with-sequelize}
 
-TiDB は MySQL 互換のデータベースであり、Node.js 用の人気のある ORM フレームワークです[続編](https://sequelize.org/)
+TiDB is a MySQL-compatible database, and [Sequelize](https://sequelize.org/) is a popular ORM framework for Node.js.
 
-このチュートリアルでは、TiDB と Sequelize を使用して次のタスクを実行する方法を学習します。
+In this tutorial, you can learn how to use TiDB and Sequelize to accomplish the following tasks:
 
--   環境を設定します。
--   Sequelize を使用して TiDB クラスターに接続します。
--   アプリケーションをビルドして実行します。オプションで、基本的なCRUD操作用の[サンプルコードスニペット](#sample-code-snippets)見つけることもできます。
+-   Set up your environment.
+-   Connect to your TiDB cluster using Sequelize.
+-   Build and run your application. Optionally, you can find [sample code snippets](#sample-code-snippets) for basic CRUD operations.
 
-> **注記**
+> **Note**
 >
-> このチュートリアルは、 TiDB Cloud Serverless、 TiDB Cloud Dedicated、および TiDB Self-Managed で機能します。
+> This tutorial works with {{{ .starter }}}, TiDB Cloud Dedicated, and TiDB Self-Managed.
 
-## 前提条件 {#prerequisites}
+## Prerequisites {#prerequisites}
 
-このチュートリアルを完了するには、次のものが必要です。
+To complete this tutorial, you need:
 
--   [Node.js **18**](https://nodejs.org/en/download/)以降。
--   [ギット](https://git-scm.com/downloads) 。
--   TiDB クラスター。
+-   [Node.js **18**](https://nodejs.org/en/download/) or later.
+-   [Git](https://git-scm.com/downloads).
+-   A TiDB cluster.
 
 <CustomContent platform="tidb">
 
-**TiDB クラスターがない場合は、次のように作成できます。**
+**If you don't have a TiDB cluster, you can create one as follows:**
 
--   (推奨) [TiDB Cloud Serverless クラスターの作成](/develop/dev-guide-build-cluster-in-cloud.md)に従って、独自のTiDB Cloudクラスターを作成します。
--   [ローカルテストTiDBクラスタをデプロイ](/quick-start-with-tidb.md#deploy-a-local-test-cluster)または[本番のTiDBクラスタをデプロイ](/production-deployment-using-tiup.md)に従ってローカル クラスターを作成します。
+-   (Recommended) Follow [Creating a {{{ .starter }}} cluster](/develop/dev-guide-build-cluster-in-cloud.md) to create your own TiDB Cloud cluster.
+-   Follow [Deploy a local test TiDB cluster](/quick-start-with-tidb.md#deploy-a-local-test-cluster) or [Deploy a production TiDB cluster](/production-deployment-using-tiup.md) to create a local cluster.
 
 </CustomContent>
 <CustomContent platform="tidb-cloud">
 
-**TiDB クラスターがない場合は、次のように作成できます。**
+**If you don't have a TiDB cluster, you can create one as follows:**
 
--   (推奨) [TiDB Cloud Serverless クラスターの作成](/develop/dev-guide-build-cluster-in-cloud.md)に従って、独自のTiDB Cloudクラスターを作成します。
--   [ローカルテストTiDBクラスタをデプロイ](https://docs.pingcap.com/tidb/stable/quick-start-with-tidb#deploy-a-local-test-cluster)または[本番のTiDBクラスタをデプロイ](https://docs.pingcap.com/tidb/stable/production-deployment-using-tiup)に従ってローカル クラスターを作成します。
+-   (Recommended) Follow [Creating a {{{ .starter }}} cluster](/develop/dev-guide-build-cluster-in-cloud.md) to create your own TiDB Cloud cluster.
+-   Follow [Deploy a local test TiDB cluster](https://docs.pingcap.com/tidb/stable/quick-start-with-tidb#deploy-a-local-test-cluster) or [Deploy a production TiDB cluster](https://docs.pingcap.com/tidb/stable/production-deployment-using-tiup) to create a local cluster.
 
 </CustomContent>
 
-## サンプルアプリを実行してTiDBに接続する {#run-the-sample-app-to-connect-to-tidb}
+## Run the sample app to connect to TiDB {#run-the-sample-app-to-connect-to-tidb}
 
-このセクションでは、サンプル アプリケーション コードを実行して TiDB に接続する方法を説明します。
+This section demonstrates how to run the sample application code and connect to TiDB.
 
-> **注記**
+> **Note**
 >
-> 完全なコード スニペットと実行手順については、 [tidb-samples/tidb-nodejs-sequelize-クイックスタート](https://github.com/tidb-samples/tidb-nodejs-sequelize-quickstart) GitHub リポジトリを参照してください。
+> For complete code snippets and running instructions, refer to the [tidb-samples/tidb-nodejs-sequelize-quickstart](https://github.com/tidb-samples/tidb-nodejs-sequelize-quickstart) GitHub repository.
 
-### ステップ1: サンプルアプリのリポジトリをクローンする {#step-1-clone-the-sample-app-repository}
+### Step 1: Clone the sample app repository {#step-1-clone-the-sample-app-repository}
 
-サンプル コード リポジトリのクローンを作成するには、ターミナル ウィンドウで次のコマンドを実行します。
+Run the following commands in your terminal window to clone the sample code repository:
 
 ```bash
 git clone git@github.com:tidb-samples/tidb-nodejs-sequelize-quickstart.git
 cd tidb-nodejs-sequelize-quickstart
 ```
 
-### ステップ2: 依存関係をインストールする {#step-2-install-dependencies}
+### Step 2: Install dependencies {#step-2-install-dependencies}
 
-次のコマンドを実行して、サンプル アプリに必要なパッケージ ( `sequelize`を含む) をインストールします。
+Run the following command to install the required packages (including `sequelize`) for the sample app:
 
 ```bash
 npm install
 ```
 
-### ステップ3: 接続情報を構成する {#step-3-configure-connection-information}
+### Step 3: Configure connection information {#step-3-configure-connection-information}
 
-選択した TiDB デプロイメント オプションに応じて、TiDB クラスターに接続します。
+Connect to your TiDB cluster depending on the TiDB deployment option you've selected.
 
 <SimpleTab>
 
-<div label="TiDB Cloud Serverless">
+<div label="{{{ .starter }}}">
 
-1.  [**クラスター**](https://tidbcloud.com/project/clusters)ページに移動し、ターゲット クラスターの名前をクリックして概要ページに移動します。
+1.  Navigate to the [**Clusters**](https://tidbcloud.com/project/clusters) page, and then click the name of your target cluster to go to its overview page.
 
-2.  右上隅の**「接続」**をクリックします。接続ダイアログが表示されます。
+2.  Click **Connect** in the upper-right corner. A connection dialog is displayed.
 
-3.  接続ダイアログの構成が動作環境と一致していることを確認します。
+3.  Ensure the configurations in the connection dialog match your operating environment.
 
-    -   **接続タイプ**は`Public`に設定されています
+    -   **Connection Type** is set to `Public`
 
-    -   **ブランチ**は`main`に設定されています
+    -   **Branch** is set to `main`
 
-    -   **接続先が**`General`に設定されています
+    -   **Connect With** is set to `General`
 
-    -   **オペレーティング システムは**環境に適合します。
+    -   **Operating System** matches your environment.
 
-    > **注記**
+    > **Note**
     >
-    > Node.js アプリケーションでは、TLS (SSL) 接続を確立するときに Node.js がデフォルトで組み込みの[Mozilla CA証明書](https://wiki.mozilla.org/CA/Included_Certificates)使用するため、SSL CA 証明書を提供する必要はありません。
+    > In Node.js applications, you don't have to provide an SSL CA certificate, because Node.js uses the built-in [Mozilla CA certificate](https://wiki.mozilla.org/CA/Included_Certificates) by default when establishing the TLS (SSL) connection.
 
-4.  ランダムなパスワードを作成するには、 **「パスワードの生成」を**クリックします。
+4.  Click **Generate Password** to create a random password.
 
-    > **ヒント**
+    > **Tip**
     >
-    > 以前にパスワードを生成したことがある場合は、元のパスワードを使用するか、 **「パスワードのリセット」を**クリックして新しいパスワードを生成することができます。
+    > If you have generated a password before, you can either use the original password or click **Reset Password** to generate a new one.
 
-5.  次のコマンドを実行して`.env.example`コピーし、名前を`.env`に変更します。
+5.  Run the following command to copy `.env.example` and rename it to `.env`:
 
     ```shell
     cp .env.example .env
     ```
 
-6.  `.env`ファイルを編集し、環境変数を次のように設定し、接続ダイアログで対応するプレースホルダー`{}`接続パラメータに置き換えます。
+6.  Edit the `.env` file, set up the environment variables as follows, replace the corresponding placeholders `{}` with connection parameters on the connection dialog:
 
     ```dotenv
     TIDB_HOST='{host}'
@@ -116,29 +116,29 @@ npm install
     TIDB_ENABLE_SSL='true'
     ```
 
-7.  `.env`ファイルを保存します。
+7.  Save the `.env` file.
 
 </div>
 
 <div label="TiDB Cloud Dedicated">
 
-1.  [**クラスター**](https://tidbcloud.com/project/clusters)ページに移動し、ターゲット クラスターの名前をクリックして概要ページに移動します。
+1.  Navigate to the [**Clusters**](https://tidbcloud.com/project/clusters) page, and then click the name of your target cluster to go to its overview page.
 
-2.  右上隅の**「接続」**をクリックします。接続ダイアログが表示されます。
+2.  Click **Connect** in the upper-right corner. A connection dialog is displayed.
 
-3.  接続ダイアログで、 **[接続タイプ]**ドロップダウン リストから**[パブリック]**を選択し、 **[CA 証明書]**をクリックして CA 証明書をダウンロードします。
+3.  In the connection dialog, select **Public** from the **Connection Type** drop-down list, and then click **CA cert** to download the CA certificate.
 
-    IP アクセス リストをまだ設定していない場合は、 **「IP アクセス リストの設定」を**クリックするか、手順[IPアクセスリストを設定する](https://docs.pingcap.com/tidbcloud/configure-ip-access-list)に従って、最初の接続の前に設定してください。
+    If you have not configured the IP access list, click **Configure IP Access List** or follow the steps in [Configure an IP Access List](https://docs.pingcap.com/tidbcloud/configure-ip-access-list) to configure it before your first connection.
 
-    TiDB Cloud Dedicatedは、**パブリック**接続タイプに加えて、**プライベートエンドポイント**と**VPCピアリング**接続タイプもサポートしています。詳細については、 [TiDB Cloud専用クラスタに接続する](https://docs.pingcap.com/tidbcloud/connect-to-tidb-cluster)ご覧ください。
+    In addition to the **Public** connection type, TiDB Cloud Dedicated supports **Private Endpoint** and **VPC Peering** connection types. For more information, see [Connect to Your TiDB Cloud Dedicated Cluster](https://docs.pingcap.com/tidbcloud/connect-to-tidb-cluster).
 
-4.  次のコマンドを実行して`.env.example`コピーし、名前を`.env`に変更します。
+4.  Run the following command to copy `.env.example` and rename it to `.env`:
 
     ```shell
     cp .env.example .env
     ```
 
-5.  `.env`ファイルを編集し、環境変数を次のように設定し、接続ダイアログで対応するプレースホルダー`{}`接続パラメータに置き換えます。
+5.  Edit the `.env` file, set up the environment variables as follows, replace the corresponding placeholders `{}` with connection parameters on the connection dialog:
 
     ```shell
     TIDB_HOST='{host}'
@@ -150,19 +150,19 @@ npm install
     TIDB_CA_PATH='{path/to/ca}'
     ```
 
-6.  `.env`ファイルを保存します。
+6.  Save the `.env` file.
 
 </div>
 
 <div label="TiDB Self-Managed">
 
-1.  次のコマンドを実行して`.env.example`コピーし、名前を`.env`に変更します。
+1.  Run the following command to copy `.env.example` and rename it to `.env`:
 
     ```shell
     cp .env.example .env
     ```
 
-2.  `.env`ファイルを編集し、環境変数を次のように設定し、接続ダイアログで対応するプレースホルダー`{}`接続パラメータに置き換えます。
+2.  Edit the `.env` file, set up the environment variables as follows, replace the corresponding placeholders `{}` with connection parameters on the connection dialog:
 
     ```shell
     TIDB_HOST='{host}'
@@ -172,23 +172,24 @@ npm install
     TIDB_DB_NAME='test'
     ```
 
-    TiDB をローカルで実行している場合、デフォルトのホスト アドレスは`127.0.0.1`で、パスワードは空になります。
+    If you are running TiDB locally, the default host address is `127.0.0.1`, and the password is empty.
 
-3.  `.env`ファイルを保存します。
+3.  Save the `.env` file.
 
 </div>
 
 </SimpleTab>
 
-### ステップ4: サンプルアプリを実行する {#step-4-run-the-sample-app}
+### Step 4: Run the sample app {#step-4-run-the-sample-app}
 
-サンプル コードを実行するには、次のコマンドを実行します。
+Run the following command to execute the sample code:
 
 ```shell
 npm start
 ```
 
-<details><summary>**予想される出力（一部）:**</summary>
+<details>
+<summary>**Expected output(partial):**</summary>
 
 ```shell
 INFO (app/10117): Getting sequelize instance...
@@ -204,15 +205,15 @@ Executing (default): DELETE FROM `players` WHERE `id` = 6
 
 </details>
 
-## サンプルコードスニペット {#sample-code-snippets}
+## Sample code snippets {#sample-code-snippets}
 
-次のサンプル コード スニペットを参照して、独自のアプリケーション開発を完了することができます。
+You can refer to the following sample code snippets to complete your own application development.
 
-完全なサンプル コードとその実行方法については、 [tidb-samples/tidb-nodejs-sequelize-クイックスタート](https://github.com/tidb-samples/tidb-nodejs-sequelize-quickstart)リポジトリを参照してください。
+For complete sample code and how to run it, check out the [tidb-samples/tidb-nodejs-sequelize-quickstart](https://github.com/tidb-samples/tidb-nodejs-sequelize-quickstart) repository.
 
-### TiDBに接続する {#connect-to-tidb}
+### Connect to TiDB {#connect-to-tidb}
 
-次のコードは、環境変数で定義されたオプションを使用して TiDB への接続を確立します。
+The following code establish a connection to TiDB with options defined in the environment variables:
 
 ```typescript
 // src/lib/tidb.ts
@@ -256,9 +257,9 @@ export async function getSequelize() {
 }
 ```
 
-### データを挿入する {#insert-data}
+### Insert data {#insert-data}
 
-次のクエリは、 `Players`つのレコードを作成し、 `Players`オブジェクトを返します。
+The following query creates a single `Players` record and returns a `Players` object:
 
 ```typescript
 logger.info('Creating a new player...');
@@ -271,11 +272,11 @@ logger.info('Created a new player.');
 logger.info(newPlayer.toJSON());
 ```
 
-詳細については[データを挿入する](/develop/dev-guide-insert-data.md)を参照してください。
+For more information, refer to [Insert data](/develop/dev-guide-insert-data.md).
 
-### クエリデータ {#query-data}
+### Query data {#query-data}
 
-次のクエリは、コインが`300`より大きい`Players`というレコードを 1 つ返します。
+The following query returns a single `Players` record those coins are greater than `300`:
 
 ```typescript
 logger.info('Reading all players with coins > 300...');
@@ -290,11 +291,11 @@ logger.info('Read all players with coins > 300.');
 logger.info(allPlayersWithCoinsGreaterThan300.map((p) => p.toJSON()));
 ```
 
-詳細については[クエリデータ](/develop/dev-guide-get-data-from-single-table.md)を参照してください。
+For more information, refer to [Query data](/develop/dev-guide-get-data-from-single-table.md).
 
-### データを更新する {#update-data}
+### Update data {#update-data}
 
-次のクエリは、セクション[データを挿入する](#insert-data)で作成された ID `6`の`Players`にコイン`700`と商品`700`を設定します。
+The following query set `700` coins and `700` goods to the `Players` with ID `6` that was created in the [Insert data](#insert-data) section:
 
 ```typescript
 logger.info('Updating the new player...');
@@ -303,11 +304,11 @@ logger.info('Updated the new player.');
 logger.info(newPlayer.toJSON());
 ```
 
-詳細については[データを更新する](/develop/dev-guide-update-data.md)を参照してください。
+For more information, refer to [Update data](/develop/dev-guide-update-data.md).
 
-### データを削除する {#delete-data}
+### Delete data {#delete-data}
 
-次のクエリは、セクション[データを挿入する](#insert-data)で作成された ID `6`の`Player`レコードを削除します。
+The following query deletes the `Player` record with ID `6` that was created in the [Insert data](#insert-data) section:
 
 ```typescript
 logger.info('Deleting the new player...');
@@ -317,24 +318,24 @@ logger.info('Deleted the new player.');
 logger.info(deletedNewPlayer?.toJSON());
 ```
 
-詳細については[データを削除する](/develop/dev-guide-delete-data.md)を参照してください。
+For more information, refer to [Delete data](/develop/dev-guide-delete-data.md).
 
-## 次のステップ {#next-steps}
+## Next steps {#next-steps}
 
--   ORM フレームワーク Sequelize ドライバーの使用方法を[Sequelizeのドキュメント](https://sequelize.org/)から詳しく学びます。
--   [開発者ガイド](/develop/dev-guide-overview.md)の[データを挿入する](/develop/dev-guide-insert-data.md) 、 [データを更新する](/develop/dev-guide-update-data.md) 、 [データを削除する](/develop/dev-guide-delete-data.md) 、 [単一テーブルの読み取り](/develop/dev-guide-get-data-from-single-table.md) 、 [取引](/develop/dev-guide-transaction-overview.md) 、 [SQLパフォーマンスの最適化](/develop/dev-guide-optimize-sql-overview.md)などの章で、 TiDB アプリケーション開発のベスト プラクティスを学習します。
--   プロフェッショナル[TiDB開発者コース](https://www.pingcap.com/education/)を通じて学び、試験に合格すると[TiDB認定](https://www.pingcap.com/education/certification/)獲得します。
+-   Learn more usage of the ORM framework Sequelize driver from [the documentation of Sequelize](https://sequelize.org/).
+-   Learn the best practices for TiDB application development with the chapters in the [Developer guide](/develop/dev-guide-overview.md), such as [Insert data](/develop/dev-guide-insert-data.md), [Update data](/develop/dev-guide-update-data.md), [Delete data](/develop/dev-guide-delete-data.md), [Single table reading](/develop/dev-guide-get-data-from-single-table.md), [Transactions](/develop/dev-guide-transaction-overview.md), and [SQL performance optimization](/develop/dev-guide-optimize-sql-overview.md).
+-   Learn through the professional [TiDB developer courses](https://www.pingcap.com/education/) and earn [TiDB certifications](https://www.pingcap.com/education/certification/) after passing the exam.
 
-## ヘルプが必要ですか? {#need-help}
+## Need help? {#need-help}
 
 <CustomContent platform="tidb">
 
-[不和](https://discord.gg/DQZ2dy3cuc?utm_source=doc)または[スラック](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs) 、あるいは[サポートチケットを送信する](/support.md)についてコミュニティに質問してください。
+Ask the community on [Discord](https://discord.gg/DQZ2dy3cuc?utm_source=doc) or [Slack](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs), or [submit a support ticket](/support.md).
 
 </CustomContent>
 
 <CustomContent platform="tidb-cloud">
 
-[不和](https://discord.gg/DQZ2dy3cuc?utm_source=doc)または[スラック](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs) 、あるいは[サポートチケットを送信する](https://tidb.support.pingcap.com/)についてコミュニティに質問してください。
+Ask the community on [Discord](https://discord.gg/DQZ2dy3cuc?utm_source=doc) or [Slack](https://slack.tidb.io/invite?team=tidb-community&#x26;channel=everyone&#x26;ref=pingcap-docs), or [submit a support ticket](https://tidb.support.pingcap.com/).
 
 </CustomContent>

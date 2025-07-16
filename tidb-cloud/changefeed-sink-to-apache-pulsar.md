@@ -1,192 +1,198 @@
 ---
 title: Sink to Apache Pulsar
-summary: このドキュメントでは、 TiDB Cloudから Apache Pulsar へデータをストリーミングするための変更フィードの作成方法について説明します。Apache Pulsar 用の変更フィードの設定手順、制約事項、前提条件について説明します。設定手順には、ネットワーク接続の設定と変更フィード仕様の設定が含まれます。
+summary: This document explains how to create a changefeed to stream data from TiDB Cloud to Apache Pulsar. It includes restrictions, prerequisites, and steps to configure the changefeed for Apache Pulsar. The process involves setting up network connections and configuring the changefeed specification.
 ---
 
-# アパッチパルサーに沈む {#sink-to-apache-pulsar}
+# Sink to Apache Pulsar {#sink-to-apache-pulsar}
 
-このドキュメントでは、 TiDB Cloudから Apache Pulsar にデータをストリーミングするための変更フィードを作成する方法について説明します。
+This document describes how to create a changefeed to stream data from TiDB Cloud to Apache Pulsar.
 
-> **注記：**
+> **Note:**
 >
-> -   changefeed 機能を使用して Apache Pulsar にデータを複製するには、 TiDB Cloud Dedicated クラスターのバージョンが v7.5.1 以降であることを確認してください。
-> -   [TiDB Cloudサーバーレス クラスター](/tidb-cloud/select-cluster-tier.md#tidb-cloud-serverless)の場合、changefeed 機能は使用できません。
+> -   To replicate data to Apache Pulsar using the changefeed feature, make sure that your TiDB Cloud Dedicated cluster version is v7.5.1 or later.
+> -   For [TiDB Cloud Serverless clusters](/tidb-cloud/select-cluster-tier.md#tidb-cloud-serverless), the changefeed feature is unavailable.
 
-## 制限 {#restrictions}
+## Restrictions {#restrictions}
 
--   TiDB Cloudクラスターごとに、最大 100 個の変更フィードを作成できます。
--   現在、 TiDB Cloud は、Pulsar ブローカーに接続するための自己署名 TLS 証明書のアップロードをサポートしていません。
--   TiDB Cloud は、変更フィードを確立するために TiCDC を使用するため、同じ[TiCDCとしての制限](https://docs.pingcap.com/tidb/stable/ticdc-overview#unsupported-scenarios)持ちます。
--   レプリケートするテーブルに主キーまたは NULL 以外の一意のインデックスがない場合、レプリケーション中に一意の制約がないと、再試行シナリオによっては下流に重複したデータが挿入される可能性があります。
--   現在、TiCDC は Pulsar トピックを自動的に作成しません。トピックにイベントをディスパッチする前に、そのトピックが Pulsar に存在することを確認してください。
+-   For each TiDB Cloud cluster, you can create up to 100 changefeeds.
+-   Currently, TiDB Cloud does not support uploading self-signed TLS certificates to connect to Pulsar brokers.
+-   Because TiDB Cloud uses TiCDC to establish changefeeds, it has the same [restrictions as TiCDC](https://docs.pingcap.com/tidb/stable/ticdc-overview#unsupported-scenarios).
+-   If the table to be replicated does not have a primary key or a non-null unique index, the absence of a unique constraint during replication could result in duplicated data being inserted downstream in some retry scenarios.
+-   Currently, TiCDC does not automatically create Pulsar topics. Before dispatching events to a topic, ensure the topic exists in Pulsar.
 
-## 前提条件 {#prerequisites}
+## Prerequisites {#prerequisites}
 
-Apache Pulsar にデータをストリーミングするための変更フィードを作成する前に、次の前提条件を完了する必要があります。
+Before creating a changefeed to stream data to Apache Pulsar, you need to complete the following prerequisites:
 
--   ネットワーク接続を設定する
--   Pulsar ACL認証の権限を追加する
--   Apache Pulsarでトピックを手動で作成するか、Apache Pulsarブローカー構成で[`allowAutoTopicCreation`](https://pulsar.apache.org/reference/#/4.0.x/config/reference-configuration-broker?id=allowautotopiccreation)有効にします。
+-   Set up your network connection
+-   Add permissions for Pulsar ACL authorization
+-   Create topics in Apache Pulsar manually, or enable [`allowAutoTopicCreation`](https://pulsar.apache.org/reference/#/4.0.x/config/reference-configuration-broker?id=allowautotopiccreation) in the Apache Pulsar broker configuration
 
-### ネットワーク {#network}
+### Network {#network}
 
-TiDB クラスターが Apache Pulsar サービスに接続できることを確認してください。以下のいずれかの接続方法を選択できます。
+Ensure that your TiDB cluster can connect to the Apache Pulsar service. You can choose one of the following connection methods:
 
--   VPC ピアリング: 潜在的な VPC CIDR の競合を回避するためのネットワーク計画とセキュリティ上の懸念の考慮が必要です。
--   パブリックIP: PulsarがパブリックIPをアドバタイズする場合のセットアップに適しています。この方法は本番環境には推奨されず、セキュリティ上の懸念事項を慎重に検討する必要があります。
+-   VPC Peering: requires network planning to avoid potential VPC CIDR conflicts and consideration of security concerns.
+-   Public IP: suitable for setup when Pulsar advertises a public IP. This method is not recommended for production environments and requires careful consideration of security concerns.
 
 <SimpleTab>
 <div label="VPC Peering">
 
-Apache Pulsar サービスがインターネットにアクセスできない AWS VPC にある場合は、次の手順を実行します。
+If your Apache Pulsar service is in an AWS VPC that has no internet access, take the following steps:
 
-1.  Apache Pulsar サービスの VPC と TiDB クラスター間の接続は[VPCピアリング接続を設定する](/tidb-cloud/set-up-vpc-peering-connections.md) 。
+1.  [Set up a VPC peering connection](/tidb-cloud/set-up-vpc-peering-connections.md) between the VPC of the Apache Pulsar service and your TiDB cluster.
 
-2.  Apache Pulsar サービスが関連付けられているセキュリティ グループの受信ルールを変更します。
+2.  Modify the inbound rules of the security group that the Apache Pulsar service is associated with.
 
-    TiDB Cloudクラスターが配置されているリージョンの CIDR をインバウンドルールに追加する必要があります。CIDR は**VPC ピアリング**ページで確認できます。これにより、トラフィックが TiDB クラスターから Pulsar ブローカーに流れるようになります。
+    You must add the CIDR of the region where your TiDB Cloud cluster is located to the inbound rules. The CIDR can be found on the **VPC Peering** page. Doing so allows the traffic to flow from your TiDB cluster to the Pulsar brokers.
 
-3.  Apache Pulsar URL にホスト名が含まれている場合は、 TiDB Cloud がApache Pulsar ブローカーの DNS ホスト名を解決できるようにする必要があります。
+3.  If the Apache Pulsar URL contains hostnames, you need to allow TiDB Cloud to resolve the DNS hostnames of the Apache Pulsar brokers.
 
-    1.  [VPC ピアリング接続の DNS 解決を有効にする](https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-dns.html)の手順に従います。
-    2.  **Accepter DNS 解決**オプションを有効にします。
+    1.  Follow the steps in [Enable DNS resolution for a VPC peering connection](https://docs.aws.amazon.com/vpc/latest/peering/vpc-peering-dns.html).
+    2.  Enable the **Accepter DNS resolution** option.
 
-Apache Pulsar サービスがインターネットにアクセスできない Google Cloud VPC にある場合は、次の手順に従います。
+If your Apache Pulsar service is in a Google Cloud VPC that has no internet access, take the following steps:
 
-1.  Apache Pulsar サービスの VPC と TiDB クラスター間の接続は[VPCピアリング接続を設定する](/tidb-cloud/set-up-vpc-peering-connections.md) 。
-2.  Apache Pulsar が配置されている VPC の Ingress ファイアウォール ルールを変更します。
+1.  [Set up a VPC peering connection](/tidb-cloud/set-up-vpc-peering-connections.md) between the VPC of the Apache Pulsar service and your TiDB cluster.
+2.  Modify the ingress firewall rules of the VPC where Apache Pulsar is located.
 
-    TiDB Cloudクラスターが配置されているリージョンの CIDR を、Ingress ファイアウォールルールに追加する必要があります。CIDR は**VPC ピアリング**ページで確認できます。これにより、TiDB クラスターから Pulsar ブローカーへのトラフィックが許可される場合があります。
+    You must add the CIDR of the region where your TiDB Cloud cluster is located to the ingress firewall rules. The CIDR can be found on the **VPC Peering** page. Doing so allows the traffic to flow from your TiDB cluster to the Pulsar brokers.
 
 </div>
 <div label="Public IP">
 
-Apache Pulsar サービスにパブリック IP アクセスを提供する場合は、すべての Pulsar ブローカーにパブリック IP アドレスを割り当てます。
+If you want to provide Public IP access to your Apache Pulsar service, assign public IP addresses to all your Pulsar brokers.
 
-本番環境でパブリック IP を使用することはお勧めし**ません**。
+It is **NOT** recommended to use Public IP in a production environment.
 
 </div>
 </SimpleTab>
 
-### Apache Pulsarでトピックを作成する {#create-topics-in-apache-pulsar}
+### Create topics in Apache Pulsar {#create-topics-in-apache-pulsar}
 
-現在、TiCDCはPulsarトピックを自動的に作成しません。変更フィードを作成する前に、Pulsarで必要なトピックを作成する必要があります。トピックの数と名前は、選択した配信モードによって異なります。
+Currently, TiCDC does not automatically create Pulsar topics. You need to create the required topics in Pulsar before creating the changefeed. The number and naming of topics depend on your preferred distribution mode:
 
--   すべての Pulsar メッセージを 1 つのトピックに配信するには、希望する名前で 1 つのトピックを作成します。
--   各テーブルの Pulsar メッセージを専用のトピックに配信するには、複製するテーブルごとに`<Topic Prefix><DatabaseName><Separator><TableName><Topic Suffix>`形式でトピックを作成します。
--   データベースの Pulsar メッセージを専用のトピックに配信するには、複製するデータベースごとに`<Topic Prefix><DatabaseName><Topic Suffix>`形式でトピックを作成します。
+-   To distribute all Pulsar messages to a single topic: create one topic with your preferred name.
+-   To distribute Pulsar messages of each table to a dedicated topic, create topics in the `<Topic Prefix><DatabaseName><Separator><TableName><Topic Suffix>` format for each table you want to replicate.
+-   To distribute Pulsar messages of a database to a dedicated topic, create topics in the `<Topic Prefix><DatabaseName><Topic Suffix>` format for each database you want to replicate.
 
-構成によっては、行以外のイベント (スキーマの変更など) のデフォルト トピックが必要になる場合もあります。
+You might also need a default topic for non-row events (such as schema changes) depending on your configuration.
 
-詳細については、Apache Pulsar ドキュメントの[トピックの作成方法](https://pulsar.apache.org/docs/4.0.x/tutorials-topic/)参照してください。
+For more information, see [How to create a topic](https://pulsar.apache.org/docs/4.0.x/tutorials-topic/) in Apache Pulsar documentation.
 
-## ステップ1. Apache PulsarのChangefeedページを開く {#step-1-open-the-changefeed-page-for-apache-pulsar}
+## Step 1. Open the Changefeed page for Apache Pulsar {#step-1-open-the-changefeed-page-for-apache-pulsar}
 
-1.  [TiDB Cloudコンソール](https://tidbcloud.com)にログインします。
-2.  変更フィード イベントのソースとなる TiDB クラスターのクラスター概要ページに移動し、左側のナビゲーション ペインで**[データ]** &gt; **[変更フィード]**をクリックします。
-3.  **「Changefeed の作成」を**クリックします。
+1.  Log in to the [TiDB Cloud console](https://tidbcloud.com).
+2.  Navigate to the cluster overview page of the TiDB cluster that will be the source of the changefeed events, and then click **Data** > **Changefeed** in the left navigation pane.
+3.  Click **Create Changefeed**.
 
-## ステップ2. チェンジフィードの送信先を設定する {#step-2-configure-the-changefeed-destination}
+## Step 2. Configure the changefeed destination {#step-2-configure-the-changefeed-destination}
 
-1.  **宛先**セクションで、 **Pulsar**を選択します。
+1.  In the **Destination** section, select **Pulsar**.
 
-2.  **接続**セクションで、次の情報を入力します。
+2.  In the **Connection** section, enter the following information:
 
-    -   **宛先プロトコル**: **Pulsar**または**Pulsar+SSL**を選択します。
-    -   **接続方法**: Pulsar エンドポイントへの接続方法に応じて、 **VPC ピアリング**または**パブリック**を選択します。
-    -   **Pulsarブローカー**: Pulsarブローカーのエンドポイントを入力します。ポートとドメインまたはIPアドレスをコロンで区切ってください（例： `example.org:6650` ）。
+    -   **Destination Protocol**: select **Pulsar** or **Pulsar+SSL**.
+    -   **Connectivity Method**: select **VPC Peering** or **Public**, depending on how you plan to connect to your Pulsar endpoint.
+    -   **Pulsar Broker**: enter the endpoint of your Pulsar broker. Use a colon to separate the port from the domain or IP address, such as `example.org:6650`.
 
-3.  **「認証」**セクションで、Pulsarの認証設定に応じて**「認証タイプ」**オプションを選択します。選択内容に基づいて、要求された認証情報を入力します。
+3.  In the **Authentication** section, select the **Auth Type** option according to your Pulsar authentication configuration. Enter the requested credential information based on your selection.
 
-4.  オプション: **[詳細設定]**セクションで、追加の設定を構成します。
+4.  Optional: In the **Advanced Settings** section, configure additional settings:
 
-    -   **圧縮**: この変更フィード内のデータに対してオプションの圧縮アルゴリズムを選択します。
-    -   **バッチあたりの最大メッセージ数**と**最大公開遅延**：Pulsar に送信されるイベントメッセージのバッチ処理を指定します。**バッチあたりの最大メッセージ数**はバッチあたりの最大メッセージ数を設定し、**最大公開遅延**はバッチを送信するまでの最大待機時間を設定します。
-    -   **接続タイムアウト**: Pulsar への TCP 接続を確立するためのタイムアウトを調整します。
-    -   **操作タイムアウト**: TiCDC Pulsar クライアントを使用して操作を開始する際のタイムアウトを調整します。
-    -   **送信タイムアウト**: TiCDC Pulsar プロデューサーがメッセージを送信するまでのタイムアウトを調整します。
+    -   **Compression**: select an optional compression algorithm for the data in this changefeed.
+    -   **Max Messages per Batch** and **Max Publish Delay**: specify the batching of event messages sent to Pulsar. **Max Messages per Batch** sets the maximum number of messages per batch, while **Max Publish Delay** sets the maximum wait time before sending a batch.
+    -   **Connection Timeout**: adjust the timeout for establishing a TCP connection to Pulsar.
+    -   **Operation Timeout**: adjust the timeout for initiating operations using the TiCDC Pulsar client.
+    -   **Send Timeout**: adjust the timeout for the TiCDC Pulsar producer to send a message.
 
-5.  **「次へ」**をクリックしてネットワーク接続をテストします。テストが成功すると、次のステップに進みます。
+5.  Click **Next** to test the network connection. If the test succeeds, you will be directed to the next step.
 
-## ステップ3. 変更フィードのレプリケーションを構成する {#step-3-configure-the-changefeed-replication}
+## Step 3. Configure the changefeed replication {#step-3-configure-the-changefeed-replication}
 
-1.  **テーブルフィルター**をカスタマイズして、複製するテーブルをフィルタリングします。ルールの構文については、 [テーブルフィルタルール](/table-filter.md)を参照してください。
+1.  Customize **Table Filter** to filter the tables that you want to replicate. For the rule syntax, refer to [table filter rules](/table-filter.md).
 
-    -   **フィルタールール**: この列でフィルタールールを設定できます。デフォルトでは、すべてのテーブルを複製するルール`*.*`が設定されています。新しいルールを追加すると、 TiDB CloudはTiDB内のすべてのテーブルをクエリし、ルールに一致するテーブルのみを右側のボックスに表示されます。フィルタールールは最大100件まで追加できます。
-    -   **有効なキーを持つテーブル**: この列には、主キーや一意のインデックスなど、有効なキーを持つテーブルが表示されます。
-    -   **有効なキーのないテーブル**: この列には、主キーまたは一意キーを持たないテーブルが表示されます。これらのテーブルは、一意の識別子がないと、下流で重複イベントを処理する際にデータの不整合が発生する可能性があるため、レプリケーション中に問題が発生します。データの整合性を確保するには、レプリケーションを開始する前に、これらのテーブルに一意のキーまたは主キーを追加することをお勧めします。または、これらのテーブルを除外するフィルタールールを追加することもできます。例えば、ルール`"!test.tbl1"`を使用してテーブル`test.tbl1`を除外できます。
+    -   **Filter Rules**: you can set filter rules in this column. By default, there is a rule `*.*`, which stands for replicating all tables. When you add a new rule, TiDB Cloud queries all the tables in TiDB and displays only the tables that match the rules in the box on the right. You can add up to 100 filter rules.
+    -   **Tables with valid keys**: this column displays the tables that have valid keys, including primary keys or unique indexes.
+    -   **Tables without valid keys**: this column shows tables that lack primary keys or unique keys. These tables present a challenge during replication because the absence of a unique identifier can result in inconsistent data when the downstream handles duplicate events. To ensure data consistency, it is recommended to add unique keys or primary keys to these tables before initiating the replication. Alternatively, you can add filter rules to exclude these tables. For example, you can exclude the table `test.tbl1` by using the rule `"!test.tbl1"`.
 
-2.  **イベント フィルター**をカスタマイズして、複製するイベントをフィルターします。
+2.  Customize **Event Filter** to filter the events that you want to replicate.
 
-    -   **一致するテーブル**: この列では、イベントフィルターを適用するテーブルを設定できます。ルールの構文は、前述の**「テーブルフィルター」**領域で使用した構文と同じです。変更フィードごとに最大10個のイベントフィルタールールを追加できます。
-    -   **無視されるイベント**: イベント フィルターが変更フィードから除外するイベントの種類を設定できます。
+    -   **Tables matching**: you can set which tables the event filter will be applied to in this column. The rule syntax is the same as that used for the preceding **Table Filter** area. You can add up to 10 event filter rules per changefeed.
+    -   **Event Filter**: you can use the following event filters to exclude specific events from the changefeed:
+        -   **Ignore event**: excludes specified event types.
+        -   **Ignore SQL**: excludes DDL events that match specified expressions. For example, `^drop` excludes statements starting with `DROP`, and `add column` excludes statements containing `ADD COLUMN`.
+        -   **Ignore insert value expression**: excludes `INSERT` statements that meet specific conditions. For example, `id >= 100` excludes `INSERT` statements where `id` is greater than or equal to 100.
+        -   **Ignore update new value expression**: excludes `UPDATE` statements where the new value matches a specified condition. For example, `gender = 'male'` excludes updates that result in `gender` being `male`.
+        -   **Ignore update old value expression**: excludes `UPDATE` statements where the old value matches a specified condition. For example, `age < 18` excludes updates where the old value of `age` is less than 18.
+        -   **Ignore delete value expression**: excludes `DELETE` statements that meet a specified condition. For example, `name = 'john'` excludes `DELETE` statements where `name` is `'john'`.
 
-3.  **「レプリケーション開始位置」**領域で、変更フィードが Pulsar にデータをレプリケートする開始点を選択します。
+3.  In the **Start Replication Position** area, select the starting point for the changefeed to replicate data to Pulsar:
 
-    -   **今からレプリケーションを開始します**。変更フィードは現在の時点からデータのレプリケーションを開始します。
-    -   **特定のTSOからレプリケーションを開始します**。変更フィードは指定された[TSO](/tso.md)以降のデータのレプリケーションを開始します。指定するTSOは[ガベージコレクションの安全ポイント](/read-historical-data.md#how-tidb-manages-the-data-versions)以内である必要があります。
-    -   **特定の時刻からレプリケーションを開始**: チェンジフィードは指定されたタイムスタンプ以降のデータのレプリケーションを開始します。指定するタイムスタンプは、ガベージコレクションのセーフポイント内である必要があります。
+    -   **Start replication from now on**: the changefeed will begin replicating data from the current point onwards.
+    -   **Start replication from a specific TSO**: the changefeed will begin replicating data from the specified [TSO](/tso.md) onwards. The specified TSO must be within the [garbage collection safe point](/read-historical-data.md#how-tidb-manages-the-data-versions).
+    -   **Start replication from a specific time**: the changefeed will begin replicating data from the specified timestamp onwards. The specified timestamp must be within the garbage collection safe point.
 
-4.  **「データ形式」**領域で、希望する Pulsar メッセージの形式を選択します。
+4.  In the **Data Format** area, select your desired format of Pulsar messages.
 
-    -   Canal-JSONは、解析が容易なプレーンなJSONテキスト形式です。詳細については、 [TiCDC Canal-JSON プロトコル](https://docs.pingcap.com/tidb/stable/ticdc-canal-json/)ご覧ください。
+    -   Canal-JSON is a plain JSON text format, which is easy to parse. For more information, see [TiCDC Canal-JSON Protocol](https://docs.pingcap.com/tidb/stable/ticdc-canal-json/).
 
-    -   Pulsarメッセージ本文にTiDB拡張フィールドを追加するには、 **「TiDB拡張」**オプションを有効にしてください。詳細については、 [TiCDC Canal-JSON プロトコルの TiDB 拡張フィールド](https://docs.pingcap.com/tidb/stable/ticdc-canal-json/#tidb-extension-field)参照してください。
+    -   To add TiDB-extension fields to the Pulsar message body, enable the **TiDB Extension** option. For more information, see [TiDB extension field in TiCDC Canal-JSON Protocol](https://docs.pingcap.com/tidb/stable/ticdc-canal-json/#tidb-extension-field).
 
-5.  **「トピック配布」**領域で配布モードを選択し、モードに応じてトピック名の構成を入力します。
+5.  In the **Topic Distribution** area, select a distribution mode, and then fill in the topic name configurations according to the mode.
 
-    配布モードは、すべてのメッセージを 1 つのトピックに送信するか、テーブルまたはデータベースごとに特定のトピックに送信するかによって、変更フィードがイベント メッセージを Pulsar トピックに配布する方法を制御します。
+    The distribution mode controls how the changefeed distributes event messages to Pulsar topics, by sending all messages to one topic, or sending to specific topics by table or by database.
 
-    > **注記：**
+    > **Note:**
     >
-    > ダウンストリームとしてPulsarを選択した場合、チェンジフィードはトピックを自動的に作成しません。必要なトピックは事前に作成する必要があります。
+    > When you select Pulsar as the downstream, the changefeed does not automatically create topics. You must create the required topics in advance.
 
-    -   **すべての変更ログを指定された Pulsar トピックに送信する**
+    -   **Send all changelogs to one specified Pulsar Topic**
 
-        チェンジフィードですべてのメッセージを単一のPulsarトピックに送信したい場合は、このモードを選択してください。**トピック名**フィールドでトピック名を指定できます。
+        If you want the changefeed to send all messages to a single Pulsar topic, choose this mode. You can specify a topic name in the **Topic Name** field.
 
-    -   **Pulsar Topicsにテーブルごとに変更ログを配布する**
+    -   **Distribute changelogs by table to Pulsar Topics**
 
-        各テーブルのすべてのPulsarメッセージを専用のPulsarトピックに送信するように変更フィードを設定する場合は、このモードを選択してください。**トピックプレフィックス**、データベース名とテーブル名の間の**セパレータ**、**トピックサフィックス**を設定することで、テーブルのトピック名を指定できます。例えば、セパレータを`_`に設定すると、Pulsarメッセージは`<Topic Prefix><DatabaseName>_<TableName><Topic Suffix>`という形式の名前を持つトピックに送信されます。これらのトピックは事前にPulsar上に作成しておく必要があります。
+        If you want the changefeed to send all Pulsar messages of each table to a dedicated Pulsar topic, choose this mode. You can specify topic names for tables by setting the **Topic Prefix**, a **Separator** between a database name and table name, and a **Topic Suffix**. For example, if you set the separator as `_`, the Pulsar messages will be sent to topics whose names are in the format of `<Topic Prefix><DatabaseName>_<TableName><Topic Suffix>`. You need to create these topics in advance on Pulsar.
 
-        スキーマ作成イベントなどの行以外のイベントの変更ログについては、 **「デフォルトのトピック名」**フィールドにトピック名を指定できます。変更フィードは、行以外のイベントをこのトピックに送信して、そのような変更ログを収集します。
+        For changelogs of non-row events, such as Create Schema Event, you can specify a topic name in the **Default Topic Name** field. The changefeed sends the non-row events to this topic to collect such changelogs.
 
-    -   **データベースごとに変更ログをPulsar Topicsに配布する**
+    -   **Distribute changelogs by database to Pulsar Topics**
 
-        各データベースのすべてのPulsarメッセージを専用のPulsarトピックに送信するように変更フィードを設定する場合は、このモードを選択してください。**トピックプレフィックス**と**トピックサフィックス**を設定することで、データベースのトピック名を指定できます。
+        If you want the changefeed to send all Pulsar messages of each database to a dedicated Pulsar topic, choose this mode. You can specify topic names for databases by setting the **Topic Prefix** and **Topic Suffix**.
 
-        解決済みTsイベントなどの行以外のイベントの変更ログについては、 **「デフォルトのトピック名」**フィールドにトピック名を指定できます。変更フィードは、行以外のイベントをこのトピックに送信して、そのような変更ログを収集します。
+        For changelogs of non-row events, such as Resolved Ts Event, you can specify a topic name in the **Default Topic Name** field. The changefeed sends the non-row events to this topic to collect such changelogs.
 
-    Pulsar はマルチテナントをサポートしているため、デフォルトと異なる場合は**Pulsar テナント**と**Pulsar 名前空間**も設定する必要があります。
+    Because Pulsar supports multi-tenancy, you might also set the **Pulsar Tenant** and **Pulsar Namespace** if they are different from the defaults.
 
-6.  **「パーティション分散」**領域では、Pulsarメッセージの送信先パーティションを指定できます。**すべてのテーブルに対して単一のパーティションディスパッチャを**定義することも、**テーブルごとに異なるパーティションディスパッチャを**定義することもできます。TiDB TiDB Cloudは、変更イベントをPulsarパーティションに分散するための4つのルールオプションを提供しています。
+6.  In the **Partition Distribution** area, you can decide which partition a Pulsar message is sent to. You can define **a single partition dispatcher for all tables** or **different partition dispatchers for different tables**. TiDB Cloud provides four rule options to distribute change events to Pulsar partitions:
 
-    -   **主キーまたは一意のインデックス**
+    -   **Primary key or unique index**
 
-        変更フィードによってテーブルのPulsarメッセージを複数のパーティションに送信する場合は、この分散方法を選択してください。行の変更ログの主キーまたはインデックス値によって、変更ログが送信されるパーティションが決まります。この分散方法により、パーティションのバランスが向上し、行レベルの順序性が確保されます。
+        If you want the changefeed to send Pulsar messages of a table to different partitions, choose this distribution method. The primary key or index value of a row changelog determines which partition the changelog is sent to. This distribution method provides better partition balance and ensures row-level orderliness.
 
-    -   **テーブル**
+    -   **Table**
 
-        変更フィードでテーブルのPulsarメッセージを単一のPulsarパーティションに送信する場合は、この分散方法を選択してください。行変更ログのテーブル名によって、変更ログが送信されるパーティションが決まります。この分散方法はテーブルの整列性を保証しますが、パーティションの不均衡が生じる可能性があります。
+        If you want the changefeed to send Pulsar messages of a table to one Pulsar partition, choose this distribution method. The table name of a row changelog determines which partition the changelog is sent to. This distribution method ensures table orderliness but might cause unbalanced partitions.
 
-    -   **タイムスタンプ**
+    -   **Timestamp**
 
-        タイムスタンプに基づいて、変更フィードから異なるPulsarパーティションにPulsarメッセージを送信する場合は、この分散方法を選択してください。行変更ログのコミットTによって、変更ログが送信されるパーティションが決まります。この分散方法は、パーティションバランスを改善し、各パーティションの秩序性を確保します。ただし、データ項目の複数の変更が異なるパーティションに送信され、各コンシューマーの進行状況が異なる場合があり、データの不整合が発生する可能性があります。そのため、コンシューマーは複数のパーティションからデータを消費する前に、コミットTでソートする必要があります。
+        If you want the changefeed to send Pulsar messages to different Pulsar partitions based on the timestamp, choose this distribution method. The commitTs of a row changelog determines which partition the changelog is sent to. This distribution method provides better partition balance and ensures orderliness in each partition. However, multiple changes of a data item might be sent to different partitions and the consumer progress of different consumers might be different, which might cause data inconsistency. Therefore, the consumer needs to sort the data from multiple partitions by commitTs before consuming.
 
-    -   **カラムの値**
+    -   **Column value**
 
-        変更フィードによってテーブルのPulsarメッセージを複数のパーティションに送信する場合は、この分散方法を選択してください。行の変更ログの指定された列値によって、変更ログが送信されるパーティションが決まります。この分散方法により、各パーティションの順序性が確保され、同じ列値を持つ変更ログが同じパーティションに送信されることが保証されます。
+        If you want the changefeed to send Pulsar messages of a table to different partitions, choose this distribution method. The specified column values of a row changelog will determine which partition the changelog is sent to. This distribution method ensures orderliness in each partition and guarantees that changelogs with the same column values are sent to the same partition.
 
-7.  **「次へ」**をクリックします。
+7.  Click **Next**.
 
-## ステップ4. 仕様の設定とレビュー {#step-4-configure-specification-and-review}
+## Step 4. Configure specification and review {#step-4-configure-specification-and-review}
 
-1.  **仕様と名前の**セクションでは、次の操作を行います。
+1.  In the **Specification and Name** section:
 
-    -   チェンジフィードの数を[レプリケーション容量単位 (RCU)](/tidb-cloud/tidb-cloud-billing-ticdc-rcu.md)に指定します。
-    -   変更フィードの名前を入力します。
+    -   Specify the number of [Replication Capacity Units (RCUs)](/tidb-cloud/tidb-cloud-billing-ticdc-rcu.md) for the changefeed.
+    -   Enter a name for the changefeed.
 
-2.  すべての changefeed 構成を確認します。
+2.  Review all changefeed configurations.
 
-    -   問題が見つかった場合は、前の手順に戻って問題を解決することができます。
-    -   問題がなければ、 **「送信」**をクリックして変更フィードを作成できます。
+    -   If you find an issue, you can go back to previous steps to resolve the problem.
+    -   If there are no issues, you can click **Submit** to create the changefeed.

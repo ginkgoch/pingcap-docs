@@ -1,111 +1,111 @@
 ---
 title: Changefeed
-summary: TiDB Cloudチェンジフィードは、 TiDB Cloudから他のデータ サービスにデータをストリーミングするのに役立ちます。
+summary: TiDB Cloud changefeed helps you stream data from TiDB Cloud to other data services.
 ---
 
-# チェンジフィード {#changefeed}
+# Changefeed {#changefeed}
 
-TiDB Cloud changefeed は、 TiDB Cloudから他のデータサービスへのデータストリーミングをサポートします。現在、 TiDB Cloud はApache Kafka、MySQL、 TiDB Cloud 、クラウドstorageへのデータストリーミングをサポートしています。
+TiDB Cloud changefeed helps you stream data from TiDB Cloud to other data services. Currently, TiDB Cloud supports streaming data to Apache Kafka, MySQL, TiDB Cloud and cloud storage.
 
-> **注記：**
+> **Note:**
 >
-> -   現在、 TiDB Cloudクラスターごとに最大 100 個の変更フィードのみが許可されます。
-> -   現在、 TiDB Cloud、変更フィードごとに最大 100 個のテーブル フィルター ルールのみが許可されます。
-> -   [TiDB Cloudサーバーレス クラスター](/tidb-cloud/select-cluster-tier.md#tidb-cloud-serverless)の場合、changefeed 機能は使用できません。
+> -   Currently, TiDB Cloud only allows up to 100 changefeeds per cluster.
+> -   Currently, TiDB Cloud only allows up to 100 table filter rules per changefeed.
+> -   For [TiDB Cloud Serverless clusters](/tidb-cloud/select-cluster-tier.md#tidb-cloud-serverless), the changefeed feature is unavailable.
 
-## Changefeedページをビュー {#view-the-changefeed-page}
+## View the Changefeed page {#view-the-changefeed-page}
 
-changefeed 機能にアクセスするには、次の手順を実行します。
+To access the changefeed feature, take the following steps:
 
-1.  [TiDB Cloudコンソール](https://tidbcloud.com)で、プロジェクトの[**クラスター**](https://tidbcloud.com/project/clusters)ページに移動します。
+1.  In the [TiDB Cloud console](https://tidbcloud.com), navigate to the [**Clusters**](https://tidbcloud.com/project/clusters) page of your project.
 
-    > **ヒント：**
+    > **Tip:**
     >
-    > 左上隅のコンボ ボックスを使用して、組織、プロジェクト、クラスターを切り替えることができます。
+    > You can use the combo box in the upper-left corner to switch between organizations, projects, and clusters.
 
-2.  ターゲットクラスタの名前をクリックして概要ページに移動し、左側のナビゲーションペインで**「データ」** &gt; **「Changefeed」**をクリックします。Changefeedページが表示されます。
+2.  Click the name of your target cluster to go to its overview page, and then click **Data** > **Changefeed** in the left navigation pane. The changefeed page is displayed.
 
-**Changefeed**ページでは、変更フィードを作成したり、既存の変更フィードの一覧を表示したり、既存の変更フィードを操作したり (変更フィードのスケーリング、一時停止、再開、編集、削除など) できます。
+On the **Changefeed** page, you can create a changefeed, view a list of existing changefeeds, and operate the existing changefeeds (such as scaling, pausing, resuming, editing, and deleting a changefeed).
 
-## チェンジフィードを作成する {#create-a-changefeed}
+## Create a changefeed {#create-a-changefeed}
 
-変更フィードを作成するには、チュートリアルを参照してください。
+To create a changefeed, refer to the tutorials:
 
--   [Apache Kafka にシンクする](/tidb-cloud/changefeed-sink-to-apache-kafka.md)
--   [MySQLに沈む](/tidb-cloud/changefeed-sink-to-mysql.md)
--   [TiDB Cloudにシンク](/tidb-cloud/changefeed-sink-to-tidb-cloud.md)
--   [クラウドストレージにstorage](/tidb-cloud/changefeed-sink-to-cloud-storage.md)
+-   [Sink to Apache Kafka](/tidb-cloud/changefeed-sink-to-apache-kafka.md)
+-   [Sink to MySQL](/tidb-cloud/changefeed-sink-to-mysql.md)
+-   [Sink to TiDB Cloud](/tidb-cloud/changefeed-sink-to-tidb-cloud.md)
+-   [Sink to cloud storage](/tidb-cloud/changefeed-sink-to-cloud-storage.md)
 
-## クエリ変更フィード RCU {#query-changefeed-rcus}
+## Query Changefeed RCUs {#query-changefeed-rcus}
 
-1.  ターゲット TiDB クラスターの[**チェンジフィード**](#view-the-changefeed-page)ページに移動します。
-2.  クエリを実行する対応する変更フィードを見つけて、 **[アクション]**列の**[...]** &gt; [**ビュー]**をクリックします。
-3.  現在の TiCDC レプリケーション容量単位 (RCU) は、ページの**仕様**領域で確認できます。
+1.  Navigate to the [**Changefeed**](#view-the-changefeed-page) page of your target TiDB cluster.
+2.  Locate the corresponding changefeed you want to query, and click **...** > **View** in the **Action** column.
+3.  You can see the current TiCDC Replication Capacity Units (RCUs) in the **Specification** area of the page.
 
-## チェンジフィードをスケールする {#scale-a-changefeed}
+## Scale a changefeed {#scale-a-changefeed}
 
-変更フィードをスケールアップまたはスケールダウンすることで、変更フィードの TiCDC レプリケーション容量単位 (RCU) を変更できます。
+You can change the TiCDC Replication Capacity Units (RCUs) of a changefeed by scaling up or down the changfeed.
 
-> **注記：**
+> **Note:**
 >
-> -   クラスターの変更フィードをスケーリングするには、このクラスターのすべての変更フィードが 2023 年 3 月 28 日以降に作成されていることを確認してください。
-> -   クラスターに 2023 年 3 月 28 日より前に作成された変更フィードがある場合、このクラスターの既存の変更フィードも新しく作成された変更フィードもスケールアップまたはスケールダウンをサポートしません。
+> -   To scale a changefeed for a cluster, make sure that all changefeeds for this cluster are created after March 28, 2023.
+> -   If a cluster has changefeeds created before March 28, 2023, neither the existing changefeeds nor newly created changefeeds for this cluster support scaling up or down.
 
-1.  ターゲット TiDB クラスターの[**チェンジフィード**](#view-the-changefeed-page)ページに移動します。
-2.  スケールする対応する変更フィードを見つけて、 **[アクション]**列で**[...]** &gt; **[スケール アップ/ダウン] を**クリックします。
-3.  新しい仕様を選択します。
-4.  **［送信］**をクリックします。
+1.  Navigate to the [**Changefeed**](#view-the-changefeed-page) page of your target TiDB cluster.
+2.  Locate the corresponding changefeed you want to scale, and click **...** > **Scale Up/Down** in the **Action** column.
+3.  Select a new specification.
+4.  Click **Submit**.
 
-スケーリング プロセスが完了するまでに約 10 分 (その間、変更フィードは正常に動作します)、新しい仕様に切り替えるまでに数秒 (その間、変更フィードは一時停止され、自動的に再開されます) かかります。
+It takes about 10 minutes to complete the scaling process (during which the changfeed works normally) and a few seconds to switch to the new specification (during which the changefeed will be paused and resumed automatically).
 
-## チェンジフィードを一時停止または再開する {#pause-or-resume-a-changefeed}
+## Pause or resume a changefeed {#pause-or-resume-a-changefeed}
 
-1.  ターゲット TiDB クラスターの[**チェンジフィード**](#view-the-changefeed-page)ページに移動します。
-2.  一時停止または再開する対応する変更フィードを見つけて、 **[アクション]**列の**[...]** &gt; **[一時停止/再開]**をクリックします。
+1.  Navigate to the [**Changefeed**](#view-the-changefeed-page) page of your target TiDB cluster.
+2.  Locate the corresponding changefeed you want to pause or resume, and click **...** > **Pause/Resume** in the **Action** column.
 
-## 変更フィードを編集する {#edit-a-changefeed}
+## Edit a changefeed {#edit-a-changefeed}
 
-> **注記：**
+> **Note:**
 >
-> TiDB Cloud現在、一時停止状態の変更フィードのみ編集できます。
+> TiDB Cloud currently only allows editing changefeeds in the paused status.
 
-1.  ターゲット TiDB クラスターの[**チェンジフィード**](#view-the-changefeed-page)ページに移動します。
+1.  Navigate to the [**Changefeed**](#view-the-changefeed-page) page of your target TiDB cluster.
 
-2.  一時停止する変更フィードを見つけて、 **[アクション**] 列の**[...]** &gt; **[一時停止] を**クリックします。
+2.  Locate the changefeed you want to pause, and click **...** > **Pause** in the **Action** column.
 
-3.  changefeed のステータスが`Paused`に変わったら、 **...** &gt;**編集を**クリックして、対応する changefeed を編集します。
+3.  When the changefeed status changes to `Paused`, click **...** > **Edit** to edit the corresponding changefeed.
 
-    TiDB Cloud はデフォルトで changefeed 設定を設定します。以下の設定を変更できます。
+    TiDB Cloud populates the changefeed configuration by default. You can modify the following configurations:
 
-    -   Apache Kafka シンク: すべての構成。
-    -   MySQL シンク: **MySQL 接続**、**テーブル フィルター**、および**イベント フィルター**。
-    -   TiDB Cloudシンク: **TiDB Cloud接続**、**テーブル フィルター**、および**イベント フィルター**。
-    -   クラウドstorageシンク:**ストレージ エンドポイント**、**テーブル フィルター**、**イベント フィルター**。
+    -   Apache Kafka sink: all configurations.
+    -   MySQL sink: **MySQL Connection**, **Table Filter**, and **Event Filter**.
+    -   TiDB Cloud sink: **TiDB Cloud Connection**, **Table Filter**, and **Event Filter**.
+    -   Cloud storage sink: **Storage Endpoint**, **Table Filter**, and **Event Filter**.
 
-4.  設定を編集した後、 **[...** ] &gt; **[再開]**をクリックして、対応する変更フィードを再開します。
+4.  After editing the configuration, click **...** > **Resume** to resume the corresponding changefeed.
 
-## 変更フィードを削除する {#delete-a-changefeed}
+## Delete a changefeed {#delete-a-changefeed}
 
-1.  ターゲット TiDB クラスターの[**チェンジフィード**](#view-the-changefeed-page)ページに移動します。
-2.  削除する対応する変更フィードを見つけて、 **[アクション]**列で**[...]** &gt; **[削除] を**クリックします。
+1.  Navigate to the [**Changefeed**](#view-the-changefeed-page) page of your target TiDB cluster.
+2.  Locate the corresponding changefeed you want to delete, and click **...** > **Delete** in the **Action** column.
 
-## チェンジフィード課金 {#changefeed-billing}
+## Changefeed billing {#changefeed-billing}
 
-TiDB Cloudの変更フィードに対する課金の詳細については、 [チェンジフィード課金](/tidb-cloud/tidb-cloud-billing-ticdc-rcu.md)参照してください。
+To learn the billing for changefeeds in TiDB Cloud, see [Changefeed billing](/tidb-cloud/tidb-cloud-billing-ticdc-rcu.md).
 
-## チェンジフィードの状態 {#changefeed-states}
+## Changefeed states {#changefeed-states}
 
-レプリケーションタスクの状態は、レプリケーションタスクの実行状態を表します。実行プロセス中に、レプリケーションタスクはエラーで失敗したり、手動で一時停止、再開されたり、指定された`TargetTs`に達したりすることがあります。これらの動作により、レプリケーションタスクの状態が変化する可能性があります。
+The state of a replication task represents the running state of the replication task. During the running process, replication tasks might fail with errors, or be manually paused or resumed. These behaviors can lead to changes of the replication task state.
 
-各状態は次のように説明されます。
+The states are described as follows:
 
--   `CREATING` : レプリケーション タスクを作成中です。
--   `RUNNING` : レプリケーション タスクは正常に実行され、チェックポイント ts は正常に進行します。
--   `EDITING` : レプリケーション タスクが編集中です。
--   `PAUSING` : レプリケーション タスクは一時停止中です。
--   `PAUSED` : レプリケーション タスクは一時停止されています。
--   `RESUMING` : レプリケーション タスクが再開されています。
--   `DELETING` : レプリケーション タスクが削除されています。
--   `DELETED` : レプリケーション タスクは削除されます。
--   `WARNING` : レプリケーションタスクが警告を返しました。回復可能なエラーが発生したため、レプリケーションを続行できません。この状態の変更フィードは、状態が`RUNNING`に遷移するまで再開を試行し続けます。この状態の変更フィードは[GC操作](https://docs.pingcap.com/tidb/stable/garbage-collection-overview)ブロックします。
--   `FAILED` : レプリケーションタスクが失敗しました。何らかのエラーが発生したため、レプリケーションタスクを再開できず、自動復旧もできません。増分データのガベージコレクション(GC) 前に問題が解決された場合は、失敗した変更フィードを手動で再開できます。増分データのデフォルトの Time-To-Live (TTL) 期間は 24 時間です。つまり、変更フィードが中断されてから 24 時間以内には、GC メカニズムによってデータが削除されることはありません。
+-   `CREATING`: the replication task is being created.
+-   `RUNNING`: the replication task runs normally and the checkpoint-ts proceeds normally.
+-   `EDITING`: the replication task is being edited.
+-   `PAUSING`: the replication task is being paused.
+-   `PAUSED`: the replication task is paused.
+-   `RESUMING`: the replication task is being resumed.
+-   `DELETING`: the replication task is being deleted.
+-   `DELETED`: the replication task is deleted.
+-   `WARNING`: the replication task returns a warning. The replication cannot continue due to some recoverable errors. The changefeed in this state keeps trying to resume until the state transfers to `RUNNING`. The changefeed in this state blocks [GC operations](https://docs.pingcap.com/tidb/stable/garbage-collection-overview).
+-   `FAILED`: the replication task fails. Due to some errors, the replication task cannot resume and cannot be recovered automatically. If the issues are resolved before the garbage collection (GC) of the incremental data, you can manually resume the failed changefeed. The default Time-To-Live (TTL) duration for incremental data is 24 hours, which means that the GC mechanism does not delete any data within 24 hours after the changefeed is interrupted.

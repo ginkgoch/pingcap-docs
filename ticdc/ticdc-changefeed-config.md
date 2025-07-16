@@ -1,13 +1,13 @@
 ---
 title: CLI and Configuration Parameters of TiCDC Changefeeds
-summary: TiCDC 変更フィードの CLI と構成パラメータの定義について学習します。
+summary: Learn the definitions of CLI and configuration parameters of TiCDC changefeeds.
 ---
 
-# TiCDC 変更フィードの CLI とコンフィグレーションパラメータ {#cli-and-configuration-parameters-of-ticdc-changefeeds}
+# CLI and Configuration Parameters of TiCDC Changefeeds {#cli-and-configuration-parameters-of-ticdc-changefeeds}
 
-## Changefeed CLI パラメータ {#changefeed-cli-parameters}
+## Changefeed CLI parameters {#changefeed-cli-parameters}
 
-このセクションでは、レプリケーション (changefeed) タスクを作成する方法を示しながら、TiCDC changefeed のコマンドライン パラメータを紹介します。
+This section introduces the command-line parameters of TiCDC changefeeds by illustrating how to create a replication (changefeed) task:
 
 ```shell
 cdc cli changefeed create --server=http://10.0.10.25:8300 --sink-uri="mysql://root:123456@127.0.0.1:3306/" --changefeed-id="simple-replication-task"
@@ -19,23 +19,23 @@ ID: simple-replication-task
 Info: {"upstream_id":7178706266519722477,"namespace":"default","id":"simple-replication-task","sink_uri":"mysql://root:xxxxx@127.0.0.1:4000/?time-zone=","create_time":"2024-12-26T15:05:46.679218+08:00","start_ts":438156275634929669,"engine":"unified","config":{"case_sensitive":false,"enable_old_value":true,"force_replicate":false,"ignore_ineligible_table":false,"check_gc_safe_point":true,"enable_sync_point":true,"bdr_mode":false,"sync_point_interval":30000000000,"sync_point_retention":3600000000000,"filter":{"rules":["test.*"],"event_filters":null},"mounter":{"worker_num":16},"sink":{"protocol":"","schema_registry":"","csv":{"delimiter":",","quote":"\"","null":"\\N","include_commit_ts":false},"column_selectors":null,"transaction_atomicity":"none","encoder_concurrency":16,"terminator":"\r\n","date_separator":"none","enable_partition_separator":false},"consistent":{"level":"none","max_log_size":64,"flush_interval":2000,"storage":""}},"state":"normal","creator_version":"v8.1.2"}
 ```
 
--   `--changefeed-id` : レプリケーション タスクの ID。形式は`^[a-zA-Z0-9]+(\-[a-zA-Z0-9]+)*$`の正規表現と一致する必要があります。この ID が指定されていない場合、TiCDC は ID として UUID (バージョン 4 形式) を自動的に生成します。
+-   `--changefeed-id`: The ID of the replication task. The format must match the `^[a-zA-Z0-9]+(\-[a-zA-Z0-9]+)*$` regular expression. If this ID is not specified, TiCDC automatically generates a UUID (the version 4 format) as the ID.
 
--   `--sink-uri` : レプリケーション タスクのダウンストリーム アドレス。次の形式に従って`--sink-uri`設定します。現在、このスキームは`mysql` 、 `tidb` 、および`kafka`サポートしています。
+-   `--sink-uri`: The downstream address of the replication task. Configure `--sink-uri` according to the following format. Currently, the scheme supports `mysql`, `tidb`, and `kafka`.
 
         [scheme]://[userinfo@][host]:[port][/path]?[query_parameters]
 
-    シンク URI に`! * ' ( ) ; : @ & = + $ , / ? % # [ ]`などの特殊文字が含まれている場合は、 [URI エンコーダ](https://www.urlencoder.org/)のように特殊文字をエスケープする必要があります。
+    When the sink URI contains special characters such as `! * ' ( ) ; : @ & = + $ , / ? % # [ ]`, you need to escape the special characters, for example, in [URI Encoder](https://www.urlencoder.org/).
 
--   `--start-ts` : 変更フィードの開始 TSO を指定します。この TSO から、TiCDC クラスターはデータのプルを開始します。デフォルト値は現在の時刻です。
+-   `--start-ts`: Specifies the starting TSO of the changefeed. From this TSO, the TiCDC cluster starts pulling data. The default value is the current time.
 
--   `--target-ts` : 変更フィード終了 TSO を指定します。この TSO まで、TiCDC クラスターはデータのプルを停止します。デフォルト値は空です。つまり、TiCDC はデータのプルを自動的に停止しません。
+-   `--target-ts`: Specifies the ending TSO of the changefeed. To this TSO, the TiCDC cluster stops pulling data. The default value is empty, which means that TiCDC does not automatically stop pulling data.
 
--   `--config` : 変更フィードの構成ファイルを指定します。
+-   `--config`: Specifies the configuration file of the changefeed.
 
-## Changefeed 構成パラメータ {#changefeed-configuration-parameters}
+## Changefeed configuration parameters {#changefeed-configuration-parameters}
 
-このセクションでは、レプリケーション タスクの構成について説明します。
+This section introduces the configuration of a replication task.
 
 ```toml
 # Specifies the memory quota (in bytes) that can be used in the capture server by the sink manager.
@@ -116,8 +116,8 @@ rules = ['*.*', '!test.*']
 # The value is "false" by default. Set it to "true" to enable this feature.
 enable-table-across-nodes = false
 # When `enable-table-across-nodes` is enabled, there are two allocation modes:
-# 1. Allocate tables based on the number of Regions, so that each TiCDC node handles roughly the same number of Regions. If the number of Regions for a table exceeds the value of `region-threshold`, the table will be allocated to multiple nodes for replication. The default value of `region-threshold` is 10000.
-# region-threshold = 10000
+# 1. Allocate tables based on the number of Regions, so that each TiCDC node handles roughly the same number of Regions. If the number of Regions for a table exceeds the value of `region-threshold`, the table will be allocated to multiple nodes for replication. The default value of `region-threshold` is 100000.
+# region-threshold = 100000
 # 2. Allocate tables based on the write traffic, so that each TiCDC node handles roughly the same number of modified rows. Only when the number of modified rows per minute in a table exceeds the value of `write-key-threshold`, will this allocation take effect.
 # write-key-threshold = 30000
 # Note:

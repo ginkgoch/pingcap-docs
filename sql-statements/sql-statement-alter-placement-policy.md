@@ -1,24 +1,24 @@
 ---
 title: ALTER PLACEMENT POLICY
-summary: TiDB での ALTER PLACEMENT POLICY の使用法。
+summary: The usage of ALTER PLACEMENT POLICY in TiDB.
 ---
 
-# 配置ポリシーの変更 {#alter-placement-policy}
+# ALTER PLACEMENT POLICY {#alter-placement-policy}
 
-`ALTER PLACEMENT POLICY`以前に作成された既存の配置ポリシーを変更するために使用されます。配置ポリシーを使用するすべてのテーブルとパーティションは自動的に更新されます。
+`ALTER PLACEMENT POLICY` is used to modify existing placement policies that have previously been created. All the tables and partitions which use the placement policy will automatically be updated.
 
-> **注記：**
+> **Note:**
 >
-> この機能は[TiDB Cloudサーバーレス](https://docs.pingcap.com/tidbcloud/select-cluster-tier#tidb-cloud-serverless)クラスターでは使用できません。
+> This feature is not available on [{{{ .starter }}}](https://docs.pingcap.com/tidbcloud/select-cluster-tier#tidb-cloud-serverless) clusters.
 
-`ALTER PLACEMENT POLICY` 、以前のポリシーを新しい定義に*置き換えます*。古いポリシーを新しいポリシーと*マージしません*。次の例では、 `ALTER PLACEMENT POLICY`が実行されると`FOLLOWERS=4`失われます。
+`ALTER PLACEMENT POLICY` *replaces* the previous policy with the new definition. It does not *merge* the old policy with the new one. In the following example, `FOLLOWERS=4` is lost when the `ALTER PLACEMENT POLICY` is executed:
 
 ```sql
 CREATE PLACEMENT POLICY p1 FOLLOWERS=4;
 ALTER PLACEMENT POLICY p1 PRIMARY_REGION="us-east-1" REGIONS="us-east-1,us-west-1";
 ```
 
-## 概要 {#synopsis}
+## Synopsis {#synopsis}
 
 ```ebnf+diagram
 AlterPolicyStmt ::=
@@ -54,13 +54,13 @@ AdvancedPlacementOption ::=
 |   "SURVIVAL_PREFERENCES" EqOpt stringLit
 ```
 
-## 例 {#examples}
+## Examples {#examples}
 
-> **注記：**
+> **Note:**
 >
-> クラスターで使用可能なリージョンを確認するには、 [`SHOW PLACEMENT LABELS`](/sql-statements/sql-statement-show-placement-labels.md)参照してください。
+> To know which regions are available in your cluster, see [`SHOW PLACEMENT LABELS`](/sql-statements/sql-statement-show-placement-labels.md).
 >
-> 利用可能なリージョンが表示されない場合は、TiKV インストールでラベルが正しく設定されていない可能性があります。
+> If you do not see any available regions, your TiKV installation might not have labels set correctly.
 
 ```sql
 CREATE PLACEMENT POLICY p1 PRIMARY_REGION="us-east-1" REGIONS="us-east-1,us-west-1";
@@ -78,13 +78,13 @@ SHOW CREATE PLACEMENT POLICY p1\G
     Create Policy | CREATE PLACEMENT POLICY `p1` PRIMARY_REGION="us-east-1" REGIONS="us-east-1,us-west-1,us-west-2" FOLLOWERS=4
     1 row in set (0.00 sec)
 
-## MySQL 互換性 {#mysql-compatibility}
+## MySQL compatibility {#mysql-compatibility}
 
-このステートメントは、MySQL 構文に対する TiDB 拡張です。
+This statement is a TiDB extension to MySQL syntax.
 
-## 参照 {#see-also}
+## See also {#see-also}
 
--   [SQL の配置ルール](/placement-rules-in-sql.md)
--   [表示配置](/sql-statements/sql-statement-show-placement.md)
--   [配置ポリシーの作成](/sql-statements/sql-statement-create-placement-policy.md)
--   [ドロップ配置ポリシー](/sql-statements/sql-statement-drop-placement-policy.md)
+-   [Placement Rules in SQL](/placement-rules-in-sql.md)
+-   [SHOW PLACEMENT](/sql-statements/sql-statement-show-placement.md)
+-   [CREATE PLACEMENT POLICY](/sql-statements/sql-statement-create-placement-policy.md)
+-   [DROP PLACEMENT POLICY](/sql-statements/sql-statement-drop-placement-policy.md)
