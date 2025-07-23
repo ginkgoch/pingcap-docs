@@ -1,22 +1,22 @@
 ---
 title: Import Apache Parquet Files from Amazon S3, GCS, Azure Blob Storage, or Alibaba Cloud OSS into TiDB Cloud Serverless
-summary: Amazon S3、GCS、Azure Blob Storage、または Alibaba Cloud Object Storage Service (OSS) から Apache Parquet ファイルをTiDB Cloud Serverless にインポートする方法を学習します。
+summary: Learn how to import Apache Parquet files from Amazon S3, GCS, Azure Blob Storage, or Alibaba Cloud Object Storage Service (OSS) into TiDB Cloud Serverless.
 ---
 
-# Amazon S3、GCS、Azure Blob Storage、または Alibaba Cloud OSS から Apache Parquet ファイルをTiDB Cloud Serverless にインポートする {#import-apache-parquet-files-from-amazon-s3-gcs-azure-blob-storage-or-alibaba-cloud-oss-into-tidb-cloud-serverless}
+# Import Apache Parquet Files from Amazon S3, GCS, Azure Blob Storage, or Alibaba Cloud OSS into TiDB Cloud Serverless {#import-apache-parquet-files-from-amazon-s3-gcs-azure-blob-storage-or-alibaba-cloud-oss-into-tidb-cloud-serverless}
 
-TiDB Cloud Serverlessには、非圧縮形式とSnappy圧縮形式の[Apache パーケット](https://parquet.apache.org/)のデータファイルをインポートできます。このドキュメントでは、Amazon Simple Storage Service（Amazon S3）、Google Cloud Storage（GCS）、Azure Blob Storage、またはAlibaba Cloud Object Storage Service（OSS）からParquetファイルをTiDB Cloud Serverlessにインポートする方法について説明します。
+You can import both uncompressed and Snappy compressed [Apache Parquet](https://parquet.apache.org/) format data files to TiDB Cloud Serverless. This document describes how to import Parquet files from Amazon Simple Storage Service (Amazon S3), Google Cloud Storage (GCS), Azure Blob Storage, or Alibaba Cloud Object Storage Service (OSS) into TiDB Cloud Serverless.
 
-> **注記：**
+> **Note:**
 >
-> -   TiDB Cloud Serverless は、空のテーブルへの Parquet ファイルのインポートのみをサポートしています。既にデータが含まれている既存のテーブルにデータをインポートするには、このドキュメントに従ってTiDB Cloud Serverless を使用して一時的な空のテーブルにデータをインポートし、 `INSERT SELECT`ステートメントを使用してデータを対象の既存のテーブルにコピーします。
-> -   Snappy 圧縮ファイルは[公式Snappyフォーマット](https://github.com/google/snappy)である必要があります。その他の Snappy 圧縮形式はサポートされていません。
+> -   TiDB Cloud Serverless only supports importing Parquet files into empty tables. To import data into an existing table that already contains data, you can use TiDB Cloud Serverless to import the data into a temporary empty table by following this document, and then use the `INSERT SELECT` statement to copy the data to the target existing table.
+> -   The Snappy compressed file must be in the [official Snappy format](https://github.com/google/snappy). Other variants of Snappy compression are not supported.
 
-## ステップ1. Parquetファイルを準備する {#step-1-prepare-the-parquet-files}
+## Step 1. Prepare the Parquet files {#step-1-prepare-the-parquet-files}
 
-> **注記：**
+> **Note:**
 >
-> 現在、 TiDB Cloud Serverless は、以下のいずれかのデータ型を含む Parquet ファイルのインポートをサポートしていません。インポートする Parquet ファイルにこれらのデータ型が含まれている場合は、まず[サポートされているデータ型](#supported-data-types) （例： `STRING` ）を使用して Parquet ファイルを再生成する必要があります。あるいは、AWS Glue などのサービスを使用してデータ型を簡単に変換することもできます。
+> Currently, TiDB Cloud Serverless does not support importing Parquet files that contain any of the following data types. If Parquet files to be imported contain such data types, you need to first regenerate the Parquet files using the [supported data types](#supported-data-types) (for example, `STRING`). Alternatively, you could use a service such as AWS Glue to transform data types easily.
 >
 > -   `LIST`
 > -   `NEST STRUCT`
@@ -24,47 +24,47 @@ TiDB Cloud Serverlessには、非圧縮形式とSnappy圧縮形式の[Apache パ
 > -   `ARRAY`
 > -   `MAP`
 
-1.  Parquet ファイルが 256 MB より大きい場合は、サイズがそれぞれ約 256 MB の小さなファイルに分割することを検討してください。
+1.  If a Parquet file is larger than 256 MB, consider splitting it into smaller files, each with a size around 256 MB.
 
-    TiDB Cloud Serverlessは非常に大きなParquetファイルのインポートをサポートしていますが、256MB程度の複数の入力ファイルを扱う際に最適なパフォーマンスを発揮します。これは、 TiDB Cloud Serverlessが複数のファイルを並列処理できるため、インポート速度が大幅に向上するからです。
+    TiDB Cloud Serverless supports importing very large Parquet files but performs best with multiple input files around 256 MB in size. This is because TiDB Cloud Serverless can process multiple files in parallel, which can greatly improve the import speed.
 
-2.  Parquet ファイルに次のように名前を付けます。
+2.  Name the Parquet files as follows:
 
-    -   Parquet ファイルにテーブル全体のすべてのデータが含まれている場合は、データをインポートするときに`${db_name}.${table_name}`テーブルにマップされる`${db_name}.${table_name}.parquet`形式でファイルに名前を付けます。
+    -   If a Parquet file contains all data of an entire table, name the file in the `${db_name}.${table_name}.parquet` format, which maps to the `${db_name}.${table_name}` table when you import the data.
 
-    -   1つのテーブルのデータが複数のParquetファイルに分割されている場合は、これらのParquetファイルに数値サフィックスを追加します。例： `${db_name}.${table_name}.000001.parquet`と`${db_name}.${table_name}.000002.parquet` 。数値サフィックスは連続していなくても構いませんが、昇順である必要があります。また、すべてのサフィックスの長さを揃えるため、数値の前にゼロを追加する必要があります。
+    -   If the data of one table is separated into multiple Parquet files, append a numeric suffix to these Parquet files. For example, `${db_name}.${table_name}.000001.parquet` and `${db_name}.${table_name}.000002.parquet`. The numeric suffixes can be inconsecutive but must be in ascending order. You also need to add extra zeros before the number to ensure all the suffixes are in the same length.
 
-    > **注記：**
+    > **Note:**
     >
-    > 場合によっては、前述のルールに従って Parquet ファイル名を更新できない場合 (たとえば、Parquet ファイル リンクが他のプログラムでも使用されている場合) は、ファイル名を変更せずに、 [ステップ4](#step-4-import-parquet-files-to-tidb-cloud-serverless)の**マッピング設定**を使用してソース データを単一のターゲット テーブルにインポートできます。
+    > If you cannot update the Parquet filenames according to the preceding rules in some cases (for example, the Parquet file links are also used by your other programs), you can keep the filenames unchanged and use the **Mapping Settings** in [Step 4](#step-4-import-parquet-files-to-tidb-cloud-serverless) to import your source data to a single target table.
 
-## ステップ2. ターゲットテーブルスキーマを作成する {#step-2-create-the-target-table-schemas}
+## Step 2. Create the target table schemas {#step-2-create-the-target-table-schemas}
 
-Parquet ファイルにはスキーマ情報が含まれていないため、Parquet ファイルからTiDB Cloud Serverless にデータをインポートする前に、次のいずれかの方法でテーブル スキーマを作成する必要があります。
+Because Parquet files do not contain schema information, before importing data from Parquet files into TiDB Cloud Serverless, you need to create the table schemas using either of the following methods:
 
--   方法 1: TiDB Cloud Serverless で、ソース データのターゲット データベースとテーブルを作成します。
+-   Method 1: In TiDB Cloud Serverless, create the target databases and tables for your source data.
 
--   方法 2: Parquet ファイルが配置されている Amazon S3、GCS、Azure Blob Storage、または Alibaba Cloud Object Storage Service ディレクトリで、次のようにソース データのターゲット テーブル スキーマ ファイルを作成します。
+-   Method 2: In the Amazon S3, GCS, Azure Blob Storage, or Alibaba Cloud Object Storage Service directory where the Parquet files are located, create the target table schema files for your source data as follows:
 
-    1.  ソース データのデータベース スキーマ ファイルを作成します。
+    1.  Create database schema files for your source data.
 
-        Parquetファイルが[ステップ1](#step-1-prepare-the-parquet-files)の命名規則に従っている場合、データベーススキーマファイルはデータのインポートに必須ではありません。そうでない場合は、データベーススキーマファイルは必須です。
+        If your Parquet files follow the naming rules in [Step 1](#step-1-prepare-the-parquet-files), the database schema files are optional for the data import. Otherwise, the database schema files are mandatory.
 
-        各データベーススキーマファイルは`${db_name}-schema-create.sql`形式で、 `CREATE DATABASE` DDLステートメントを含んでいる必要があります。このファイルを使用して、 TiDB Cloud Serverlessはデータをインポートする際に、データを格納するための`${db_name}`データベースを作成します。
+        Each database schema file must be in the `${db_name}-schema-create.sql` format and contain a `CREATE DATABASE` DDL statement. With this file, TiDB Cloud Serverless will create the `${db_name}` database to store your data when you import the data.
 
-        たとえば、次のステートメントを含む`mydb-scehma-create.sql`ファイルを作成すると、 TiDB Cloud Serverless はデータをインポートするときに`mydb`データベースを作成します。
+        For example, if you create a `mydb-scehma-create.sql` file that contains the following statement, TiDB Cloud Serverless will create the `mydb` database when you import the data.
 
         ```sql
         CREATE DATABASE mydb;
         ```
 
-    2.  ソース データのテーブル スキーマ ファイルを作成します。
+    2.  Create table schema files for your source data.
 
-        Parquet ファイルが配置されている Amazon S3、GCS、Azure Blob Storage、または Alibaba Cloud Object Storage Service ディレクトリにテーブル スキーマ ファイルを含めない場合、 TiDB Cloud Serverless はデータをインポートしたときに対応するテーブルを作成しません。
+        If you do not include the table schema files in the Amazon S3, GCS, Azure Blob Storage, or Alibaba Cloud Object Storage Service directory where the Parquet files are located, TiDB Cloud Serverless will not create the corresponding tables for you when you import the data.
 
-        各テーブルスキーマファイルは`${db_name}.${table_name}-schema.sql`形式で、 `CREATE TABLE` DDLステートメントを含む必要があります。このファイルを使用すると、 TiDB Cloud Serverlessはデータをインポートする際に`${db_name}`データベースに`${db_table}`テーブルを作成します。
+        Each table schema file must be in the `${db_name}.${table_name}-schema.sql` format and contain a `CREATE TABLE` DDL statement. With this file, TiDB Cloud Serverless will create the `${db_table}` table in the `${db_name}` database when you import the data.
 
-        たとえば、次のステートメントを含む`mydb.mytable-schema.sql`ファイルを作成すると、 TiDB Cloud Serverless はデータをインポートするときに`mydb`データベースに`mytable`テーブルを作成します。
+        For example, if you create a `mydb.mytable-schema.sql` file that contains the following statement, TiDB Cloud Serverless will create the `mytable` table in the `mydb` database when you import the data.
 
         ```sql
         CREATE TABLE mytable (
@@ -73,276 +73,280 @@ Parquet ファイルにはスキーマ情報が含まれていないため、Par
         COUNT INT );
         ```
 
-        > **注記：**
+        > **Note:**
         >
-        > `${db_name}.${table_name}-schema.sql`ファイルには1つのDDL文のみを含めてください。ファイルに複数のDDL文が含まれている場合、最初の文のみが有効になります。
+        > Each `${db_name}.${table_name}-schema.sql` file should only contain a single DDL statement. If the file contains multiple DDL statements, only the first one takes effect.
 
-## ステップ3. クロスアカウントアクセスを構成する {#step-3-configure-cross-account-access}
+## Step 3. Configure cross-account access {#step-3-configure-cross-account-access}
 
-TiDB Cloud Serverless が Amazon S3、GCS、Azure Blob Storage、または Alibaba Cloud Object Storage Service バケット内の Parquet ファイルにアクセスできるようにするには、次のいずれかを実行します。
+To allow TiDB Cloud Serverless to access the Parquet files in the Amazon S3, GCS, Azure Blob Storage, or Alibaba Cloud Object Storage Service bucket, do one of the following:
 
--   Parquet ファイルが Amazon S3 にある場合は、 [TiDB Cloud Serverless の外部storageアクセスを構成する](/tidb-cloud/serverless-external-storage.md#configure-amazon-s3-access) 。
+-   If your Parquet files are located in Amazon S3, [configure external storage access for TiDB Cloud Serverless](/tidb-cloud/serverless-external-storage.md#configure-amazon-s3-access).
 
-    バケットにアクセスするには、AWS アクセスキーまたはロール ARN のいずれかを使用できます。完了したら、アクセスキー（アクセスキー ID とシークレットアクセスキーを含む）またはロール ARN の値をメモしておいてください。これらは[ステップ4](#step-4-import-parquet-files-to-tidb-cloud-serverless)で必要になります。
+    You can use either an AWS access key or a Role ARN to access your bucket. Once finished, make a note of the access key (including the access key ID and secret access key) or the Role ARN value as you will need it in [Step 4](#step-4-import-parquet-files-to-tidb-cloud-serverless).
 
--   Parquet ファイルが GCS にある場合は、 [TiDB Cloud Serverless の外部storageアクセスを構成する](/tidb-cloud/serverless-external-storage.md#configure-gcs-access) 。
+-   If your Parquet files are located in GCS, [configure external storage access for TiDB Cloud Serverless](/tidb-cloud/serverless-external-storage.md#configure-gcs-access).
 
--   Parquet ファイルが Azure Blob Storage にある場合は、 [TiDB Cloud Serverless の外部storageアクセスを構成する](/tidb-cloud/serverless-external-storage.md#configure-azure-blob-storage-access) 。
+-   If your Parquet files are located in Azure Blob Storage, [configure external storage access for TiDB Cloud Serverless](/tidb-cloud/serverless-external-storage.md#configure-azure-blob-storage-access).
 
--   Parquet ファイルが Alibaba Cloud Object Storage Service (OSS) にある場合は、 [TiDB Cloud Serverless の外部storageアクセスを構成する](/tidb-cloud/serverless-external-storage.md#configure-alibaba-cloud-object-storage-service-oss-access) 。
+-   If your Parquet files are located in Alibaba Cloud Object Storage Service (OSS), [configure external storage access for TiDB Cloud Serverless](/tidb-cloud/serverless-external-storage.md#configure-alibaba-cloud-object-storage-service-oss-access).
 
-## ステップ4. ParquetファイルをTiDB Cloud Serverlessにインポートする {#step-4-import-parquet-files-to-tidb-cloud-serverless}
+## Step 4. Import Parquet files to TiDB Cloud Serverless {#step-4-import-parquet-files-to-tidb-cloud-serverless}
 
-Parquet ファイルをTiDB Cloud Serverless にインポートするには、次の手順を実行します。
+To import the Parquet files to TiDB Cloud Serverless, take the following steps:
 
 <SimpleTab>
 <div label="Amazon S3">
 
-1.  ターゲット クラスターの**インポート**ページを開きます。
+1.  Open the **Import** page for your target cluster.
 
-    1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/project/clusters)ページに移動します。
+    1.  Log in to the [TiDB Cloud console](https://tidbcloud.com/) and navigate to the [**Clusters**](https://tidbcloud.com/project/clusters) page of your project.
 
-        > **ヒント：**
+        > **Tip:**
         >
-        > 左上隅のコンボ ボックスを使用して、組織、プロジェクト、クラスターを切り替えることができます。
+        > You can use the combo box in the upper-left corner to switch between organizations, projects, and clusters.
 
-    2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[データ]** &gt; **[インポート]**をクリックします。
+    2.  Click the name of your target cluster to go to its overview page, and then click **Data** > **Import** in the left navigation pane.
 
-2.  **「Cloud Storage からデータをインポート」**を選択し、 **「Amazon S3」**をクリックします。
+2.  Click **Import data from Cloud Storage**.
 
-3.  **「Amazon S3 からのデータのインポート」**ページで、ソース Parquet ファイルについて次の情報を入力します。
+3.  On the **Import Data from Cloud Storage** page, provide the following information:
 
-    -   **インポート ファイル数**: 必要に応じて**1 つのファイル**または**複数のファイル**を選択します。
-    -   **含まれるスキーマファイル**: このフィールドは複数のファイルをインポートする場合にのみ表示されます。ソースフォルダにターゲットテーブルスキーマが含まれている場合は**「はい」**を選択します。含まれていない場合は**「いいえ」**を選択します。
-    -   **データ形式**: **Parquet**を選択します。
-    -   **ファイルURI**または**フォルダーURI** :
-        -   1つのファイルをインポートする場合は、ソースファイルのURIと名前を次の形式で入力します`s3://[bucket_name]/[data_source_folder]/[file_name].parquet` 。たとえば、 `s3://sampledata/ingest/TableName.01.parquet` 。
-        -   複数のファイルをインポートする場合は、ソースファイルのURIと名前を次の形式で入力します`s3://[bucket_name]/[data_source_folder]/` 。たとえば、 `s3://sampledata/ingest/` 。
-    -   **バケットアクセス**：バケットにアクセスするには、AWSロールARNまたはAWSアクセスキーのいずれかを使用できます。詳細については、 [Amazon S3 アクセスを構成する](/tidb-cloud/serverless-external-storage.md#configure-amazon-s3-access)ご覧ください。
-        -   **AWS ロール ARN** : AWS ロール ARN 値を入力します。
-        -   **AWS アクセスキー**: AWS アクセスキー ID と AWS シークレットアクセスキーを入力します。
+    -   **Storage Provider**: select **Amazon S3**.
+    -   **Source Files URI**:
+        -   When importing one file, enter the source file URI and name in the following format `s3://[bucket_name]/[data_source_folder]/[file_name].parquet`. For example, `s3://sampledata/ingest/TableName.01.parquet`.
+        -   When importing multiple files, enter the source file URI and name in the following format `s3://[bucket_name]/[data_source_folder]/`. For example, `s3://sampledata/ingest/`.
+    -   **Credential**: you can use either an AWS Role ARN or an AWS access key to access your bucket. For more information, see [Configure Amazon S3 access](/tidb-cloud/serverless-external-storage.md#configure-amazon-s3-access).
+        -   **AWS Role ARN**: enter the AWS Role ARN value.
+        -   **AWS Access Key**: enter the AWS access key ID and AWS secret access key.
 
-4.  **[接続]**をクリックします。
+4.  Click **Next**.
 
-5.  **[宛先]**セクションで、ターゲット データベースとテーブルを選択します。
+5.  In the **Destination Mapping** section, specify how source files are mapped to target tables.
 
-    複数のファイルをインポートする場合、 **「詳細設定」** &gt; **「マッピング設定」**を使用して、各ターゲットテーブルとそれに対応するParquetファイルに対してカスタムマッピングルールを定義できます。その後、データソースファイルは指定されたカスタムマッピングルールを使用して再スキャンされます。
+    When a directory is specified in **Source Files URI**, the **Use <a href="/tidb-cloud/naming-conventions-for-data-import.md">File naming conventions</a> for automatic mapping** option is selected by default.
 
-    ソースファイルのURIと名前を**「ソースファイルのURIと名前」**に入力する際は、必ず次の形式`s3://[bucket_name]/[data_source_folder]/[file_name].parquet`に従ってください。例えば、 `s3://sampledata/ingest/TableName.01.parquet` 。
-
-    ソースファイルの一致にはワイルドカードも使用できます。例:
-
-    -   `s3://[bucket_name]/[data_source_folder]/my-data?.parquet` : そのフォルダー内の`my-data`で始まり、その後に 1 文字 ( `my-data1.parquet`や`my-data2.parquet`など) が続くすべての Parquet ファイルが同じターゲット テーブルにインポートされます。
-
-    -   `s3://[bucket_name]/[data_source_folder]/my-data*.parquet` : フォルダー内の`my-data`で始まるすべての Parquet ファイルが同じターゲット テーブルにインポートされます。
-
-    サポートされているのは`?`と`*`のみであることに注意してください。
-
-    > **注記：**
+    > **Note:**
     >
-    > URI にはデータ ソース フォルダーが含まれている必要があります。
+    > When a single file is specified in **Source Files URI**, the **Use <a href="/tidb-cloud/naming-conventions-for-data-import.md">File naming conventions</a> for automatic mapping** option is not displayed, and TiDB Cloud automatically populates the **Source** field with the file name. In this case, you only need to select the target database and table for data import.
 
-6.  **[インポートの開始]を**クリックします。
+    -   To let TiDB Cloud automatically map all source files that follow the [File naming conventions](/tidb-cloud/naming-conventions-for-data-import.md) to their corresponding tables, keep this option selected and select **Parquet** as the data format.
 
-7.  インポートの進行状況に**「完了」と**表示されたら、インポートされたテーブルを確認します。
+    -   To manually configure the mapping rules to associate your source Parquet files with the target database and table, unselect this option, and then fill in the following fields:
+
+        -   **Source**: enter the file name pattern in the `[file_name].parquet` format. For example: `TableName.01.parquet`. You can also use wildcards to match multiple files. Only `*` and `?` wildcards are supported.
+
+            -   `my-data?.parquet`: matches all Parquet files that start with `my-data` followed by a single character, such as `my-data1.parquet` and `my-data2.parquet`.
+            -   `my-data*.parquet`: matches all Parquet files that start with `my-data`, such as `my-data-2023.parquet` and `my-data-final.parquet`.
+
+        -   **Target Database** and **Target Table**: select the target database and table to import the data to.
+
+6.  Click **Next**. TiDB Cloud scans the source files accordingly.
+
+7.  Review the scan results, check the data files found and corresponding target tables, and then click **Start Import**.
+
+8.  When the import progress shows **Completed**, check the imported tables.
 
 </div>
 
 <div label="Google Cloud">
 
-1.  ターゲット クラスターの**インポート**ページを開きます。
+1.  Open the **Import** page for your target cluster.
 
-    1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/project/clusters)ページに移動します。
+    1.  Log in to the [TiDB Cloud console](https://tidbcloud.com/) and navigate to the [**Clusters**](https://tidbcloud.com/project/clusters) page of your project.
 
-        > **ヒント：**
+        > **Tip:**
         >
-        > 左上隅のコンボ ボックスを使用して、組織、プロジェクト、クラスターを切り替えることができます。
+        > You can use the combo box in the upper-left corner to switch between organizations, projects, and clusters.
 
-    2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[データ]** &gt; **[インポート]**をクリックします。
+    2.  Click the name of your target cluster to go to its overview page, and then click **Data** > **Import** in the left navigation pane.
 
-2.  **「Cloud Storage からデータをインポート」**を選択し、 **「Google Cloud Storage」**をクリックします。
+2.  Click **Import data from Cloud Storage**.
 
-3.  **「Google Cloud Storage からのデータのインポート」**ページで、ソース Parquet ファイルについて次の情報を入力します。
+3.  On the **Import Data from Google Cloud Storage** page, provide the following information:
 
-    -   **インポート ファイル数**: 必要に応じて**1 つのファイル**または**複数のファイル**を選択します。
-    -   **含まれるスキーマファイル**: このフィールドは複数のファイルをインポートする場合にのみ表示されます。ソースフォルダにターゲットテーブルスキーマが含まれている場合は**「はい」**を選択します。含まれていない場合は**「いいえ」**を選択します。
-    -   **データ形式**: **Parquet**を選択します。
-    -   **ファイルURI**または**フォルダーURI** :
-        -   1つのファイルをインポートする場合は、ソースファイルのURIと名前を次の形式で入力します`[gcs|gs]://[bucket_name]/[data_source_folder]/[file_name].parquet` 。たとえば、 `[gcs|gs]://sampledata/ingest/TableName.01.parquet` 。
-        -   複数のファイルをインポートする場合は、ソースファイルのURIと名前を次の形式で入力します`[gcs|gs]://[bucket_name]/[data_source_folder]/` 。たとえば、 `[gcs|gs]://sampledata/ingest/` 。
-    -   **バケットアクセス**：GCS IAMロールを使用してバケットにアクセスできます。詳細については、 [GCS アクセスを構成する](/tidb-cloud/serverless-external-storage.md#configure-gcs-access)ご覧ください。
+    -   **Storage Provider**: select **Google Cloud Storage**.
+    -   **Source Files URI**:
+        -   When importing one file, enter the source file URI and name in the following format `[gcs|gs]://[bucket_name]/[data_source_folder]/[file_name].parquet`. For example, `[gcs|gs]://sampledata/ingest/TableName.01.parquet`.
+        -   When importing multiple files, enter the source file URI and name in the following format `[gcs|gs]://[bucket_name]/[data_source_folder]/`. For example, `[gcs|gs]://sampledata/ingest/`.
+    -   **Credential**: you can use a GCS IAM Role Service Account key to access your bucket. For more information, see [Configure GCS access](/tidb-cloud/serverless-external-storage.md#configure-gcs-access).
 
-4.  **[接続]**をクリックします。
+4.  Click **Next**.
 
-5.  **[宛先]**セクションで、ターゲット データベースとテーブルを選択します。
+5.  In the **Destination Mapping** section, specify how source files are mapped to target tables.
 
-    複数のファイルをインポートする場合、 **「詳細設定」** &gt; **「マッピング設定」**を使用して、各ターゲットテーブルとそれに対応するParquetファイルに対してカスタムマッピングルールを定義できます。その後、データソースファイルは指定されたカスタムマッピングルールを使用して再スキャンされます。
+    When a directory is specified in **Source Files URI**, the **Use <a href="/tidb-cloud/naming-conventions-for-data-import.md">File naming conventions</a> for automatic mapping** option is selected by default.
 
-    ソースファイルのURIと名前を**「ソースファイルのURIと名前」**に入力する際は、必ず次の形式`[gcs|gs]://[bucket_name]/[data_source_folder]/[file_name].parquet`に従ってください。例えば、 `[gcs|gs]://sampledata/ingest/TableName.01.parquet` 。
-
-    ソースファイルの一致にはワイルドカードも使用できます。例:
-
-    -   `[gcs|gs]://[bucket_name]/[data_source_folder]/my-data?.parquet` : そのフォルダー内の`my-data`で始まり、その後に 1 文字 ( `my-data1.parquet`や`my-data2.parquet`など) が続くすべての Parquet ファイルが同じターゲット テーブルにインポートされます。
-
-    -   `[gcs|gs]://[bucket_name]/[data_source_folder]/my-data*.parquet` : フォルダー内の`my-data`で始まるすべての Parquet ファイルが同じターゲット テーブルにインポートされます。
-
-    サポートされているのは`?`と`*`のみであることに注意してください。
-
-    > **注記：**
+    > **Note:**
     >
-    > URI にはデータ ソース フォルダーが含まれている必要があります。
+    > When a single file is specified in **Source Files URI**, the **Use <a href="/tidb-cloud/naming-conventions-for-data-import.md">File naming conventions</a> for automatic mapping** option is not displayed, and TiDB Cloud automatically populates the **Source** field with the file name. In this case, you only need to select the target database and table for data import.
 
-6.  **[インポートの開始]を**クリックします。
+    -   To let TiDB Cloud automatically map all source files that follow the [File naming conventions](/tidb-cloud/naming-conventions-for-data-import.md) to their corresponding tables, keep this option selected and select **Parquet** as the data format.
 
-7.  インポートの進行状況に**「完了」と**表示されたら、インポートされたテーブルを確認します。
+    -   To manually configure the mapping rules to associate your source Parquet files with the target database and table, unselect this option, and then fill in the following fields:
+
+        -   **Source**: enter the file name pattern in the `[file_name].parquet` format. For example: `TableName.01.parquet`. You can also use wildcards to match multiple files. Only `*` and `?` wildcards are supported.
+
+            -   `my-data?.parquet`: matches all Parquet files that start with `my-data` followed by a single character, such as `my-data1.parquet` and `my-data2.parquet`.
+            -   `my-data*.parquet`: matches all Parquet files that start with `my-data`, such as `my-data-2023.parquet` and `my-data-final.parquet`.
+
+        -   **Target Database** and **Target Table**: select the target database and table to import the data to.
+
+6.  Click **Next**. TiDB Cloud scans the source files accordingly.
+
+7.  Review the scan results, check the data files found and corresponding target tables, and then click **Start Import**.
+
+8.  When the import progress shows **Completed**, check the imported tables.
 
 </div>
 
 <div label="Azure Blob Storage">
 
-1.  ターゲット クラスターの**インポート**ページを開きます。
+1.  Open the **Import** page for your target cluster.
 
-    1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/project/clusters)ページに移動します。
+    1.  Log in to the [TiDB Cloud console](https://tidbcloud.com/) and navigate to the [**Clusters**](https://tidbcloud.com/project/clusters) page of your project.
 
-        > **ヒント：**
+        > **Tip:**
         >
-        > 左上隅のコンボ ボックスを使用して、組織、プロジェクト、クラスターを切り替えることができます。
+        > You can use the combo box in the upper-left corner to switch between organizations, projects, and clusters.
 
-    2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[データ]** &gt; **[インポート]**をクリックします。
+    2.  Click the name of your target cluster to go to its overview page, and then click **Data** > **Import** in the left navigation pane.
 
-2.  **[Cloud Storage からデータをインポート]**を選択し、 **[Azure Blob Storage]**をクリックします。
+2.  Click **Import data from Cloud Storage**.
 
-3.  **Azure Blob Storage からのデータのインポート**ページで、ソース Parquet ファイルについて次の情報を入力します。
+3.  On the **Import Data from Cloud Storage** page, provide the following information:
 
-    -   **インポート ファイル数**: 必要に応じて**1 つのファイル**または**複数のファイル**を選択します。
-    -   **含まれるスキーマファイル**: このフィールドは複数のファイルをインポートする場合にのみ表示されます。ソースフォルダにターゲットテーブルスキーマが含まれている場合は**「はい」**を選択します。含まれていない場合は**「いいえ」**を選択します。
-    -   **データ形式**: **Parquet**を選択します。
-    -   **ファイルURI**または**フォルダーURI** :
-        -   1つのファイルをインポートする場合は、ソースファイルのURIと名前を次の形式で入力します`[azure|https]://[bucket_name]/[data_source_folder]/[file_name].parquet` 。たとえば、 `[azure|https]://sampledata/ingest/TableName.01.parquet` 。
-        -   複数のファイルをインポートする場合は、ソースファイルのURIと名前を次の形式で入力します`[azure|https]://[bucket_name]/[data_source_folder]/` 。たとえば、 `[azure|https]://sampledata/ingest/` 。
-    -   **バケットアクセス**：共有アクセス署名（SAS）トークンを使用してバケットにアクセスできます。詳細については、 [Azure Blob Storage アクセスを構成する](/tidb-cloud/serverless-external-storage.md#configure-azure-blob-storage-access)ご覧ください。
+    -   **Storage Provider**: select **Azure Blob Storage**.
+    -   **Source Files URI**:
+        -   When importing one file, enter the source file URI and name in the following format `[azure|https]://[bucket_name]/[data_source_folder]/[file_name].parquet`. For example, `[azure|https]://sampledata/ingest/TableName.01.parquet`.
+        -   When importing multiple files, enter the source file URI and name in the following format `[azure|https]://[bucket_name]/[data_source_folder]/`. For example, `[azure|https]://sampledata/ingest/`.
+    -   **Credential**: you can use a shared access signature (SAS) token to access your bucket. For more information, see [Configure Azure Blob Storage access](/tidb-cloud/serverless-external-storage.md#configure-azure-blob-storage-access)
 
-4.  **[接続]**をクリックします。
+4.  Click **Next**.
 
-5.  **[宛先]**セクションで、ターゲット データベースとテーブルを選択します。
+5.  In the **Destination Mapping** section, specify how source files are mapped to target tables.
 
-    複数のファイルをインポートする場合、 **「詳細設定」** &gt; **「マッピング設定」**を使用して、各ターゲットテーブルとそれに対応するParquetファイルに対してカスタムマッピングルールを定義できます。その後、データソースファイルは指定されたカスタムマッピングルールを使用して再スキャンされます。
+    When a directory is specified in **Source Files URI**, the **Use <a href="/tidb-cloud/naming-conventions-for-data-import.md">File naming conventions</a> for automatic mapping** option is selected by default.
 
-    ソースファイルのURIと名前を**「ソースファイルのURIと名前」**に入力する際は、必ず次の形式`[azure|https]://[bucket_name]/[data_source_folder]/[file_name].parquet`に従ってください。例えば、 `[azure|https]://sampledata/ingest/TableName.01.parquet` 。
-
-    ソースファイルの一致にはワイルドカードも使用できます。例:
-
-    -   `[azure|https]://[bucket_name]/[data_source_folder]/my-data?.parquet` : そのフォルダー内の`my-data`で始まり、その後に 1 文字 ( `my-data1.parquet`や`my-data2.parquet`など) が続くすべての Parquet ファイルが同じターゲット テーブルにインポートされます。
-
-    -   `[azure|https]://[bucket_name]/[data_source_folder]/my-data*.parquet` : フォルダー内の`my-data`で始まるすべての Parquet ファイルが同じターゲット テーブルにインポートされます。
-
-    サポートされているのは`?`と`*`のみであることに注意してください。
-
-    > **注記：**
+    > **Note:**
     >
-    > URI にはデータ ソース フォルダーが含まれている必要があります。
+    > When a single file is specified in **Source Files URI**, the **Use <a href="/tidb-cloud/naming-conventions-for-data-import.md">File naming conventions</a> for automatic mapping** option is not displayed, and TiDB Cloud automatically populates the **Source** field with the file name. In this case, you only need to select the target database and table for data import.
 
-6.  **[インポートの開始]を**クリックします。
+    -   To let TiDB Cloud automatically map all source files that follow the [File naming conventions](/tidb-cloud/naming-conventions-for-data-import.md) to their corresponding tables, keep this option selected and select **Parquet** as the data format.
 
-7.  インポートの進行状況に**「完了」と**表示されたら、インポートされたテーブルを確認します。
+    -   To manually configure the mapping rules to associate your source Parquet files with the target database and table, unselect this option, and then fill in the following fields:
+
+        -   **Source**: enter the file name pattern in the `[file_name].parquet` format. For example: `TableName.01.parquet`. You can also use wildcards to match multiple files. Only `*` and `?` wildcards are supported.
+
+            -   `my-data?.parquet`: matches all Parquet files that start with `my-data` followed by a single character, such as `my-data1.parquet` and `my-data2.parquet`.
+            -   `my-data*.parquet`: matches all Parquet files that start with `my-data`, such as `my-data-2023.parquet` and `my-data-final.parquet`.
+
+        -   **Target Database** and **Target Table**: select the target database and table to import the data to.
+
+6.  Click **Next**. TiDB Cloud scans the source files accordingly.
+
+7.  Review the scan results, check the data files found and corresponding target tables, and then click **Start Import**.
+
+8.  When the import progress shows **Completed**, check the imported tables.
 
 </div>
 
 <div label="Alibaba Cloud Object Storage Service (OSS)">
 
-1.  ターゲット クラスターの**インポート**ページを開きます。
+1.  Open the **Import** page for your target cluster.
 
-    1.  [TiDB Cloudコンソール](https://tidbcloud.com/)にログインし、プロジェクトの[**クラスター**](https://tidbcloud.com/project/clusters)ページに移動します。
+    1.  Log in to the [TiDB Cloud console](https://tidbcloud.com/) and navigate to the [**Clusters**](https://tidbcloud.com/project/clusters) page of your project.
 
-        > **ヒント：**
+        > **Tip:**
         >
-        > 左上隅のコンボ ボックスを使用して、組織、プロジェクト、クラスターを切り替えることができます。
+        > You can use the combo box in the upper-left corner to switch between organizations, projects, and clusters.
 
-    2.  ターゲット クラスターの名前をクリックして概要ページに移動し、左側のナビゲーション ペインで**[データ]** &gt; **[インポート]**をクリックします。
+    2.  Click the name of your target cluster to go to its overview page, and then click **Data** > **Import** in the left navigation pane.
 
-2.  **「Cloud Storage からデータをインポート」**を選択し、 **「Alibaba Cloud OSS」**をクリックします。
+2.  Click **Import data from Cloud Storage**.
 
-3.  **「Alibaba Cloud OSS からのデータのインポート」**ページで、ソース Parquet ファイルについて次の情報を入力します。
+3.  On the **Import Data from Cloud Storage** page, provide the following information:
 
-    -   **インポート ファイル数**: 必要に応じて**1 つのファイル**または**複数のファイル**を選択します。
-    -   **含まれるスキーマファイル**: このフィールドは複数のファイルをインポートする場合にのみ表示されます。ソースフォルダにターゲットテーブルスキーマが含まれている場合は**「はい」**を選択します。含まれていない場合は**「いいえ」**を選択します。
-    -   **データ形式**: **Parquet**を選択します。
-    -   **ファイルURI**または**フォルダーURI** :
-        -   1つのファイルをインポートする場合は、ソースファイルのURIと名前を次の形式で入力します`oss://[bucket_name]/[data_source_folder]/[file_name].parquet` 。たとえば、 `oss://sampledata/ingest/TableName.01.parquet` 。
-        -   複数のファイルをインポートする場合は、ソースファイルのURIと名前を次の形式で入力します`oss://[bucket_name]/[data_source_folder]/` 。たとえば、 `oss://sampledata/ingest/` 。
-    -   **バケットアクセス**：アクセスキーペアを使用してバケットにアクセスできます。詳細については、 [Alibaba Cloud Object Storage Service (OSS) アクセスを構成する](/tidb-cloud/serverless-external-storage.md#configure-alibaba-cloud-object-storage-service-oss-access)ご覧ください。
+    -   **Storage Provider**: select **Alibaba Cloud OSS**.
+    -   **Source Files URI**:
+        -   When importing one file, enter the source file URI and name in the following format `oss://[bucket_name]/[data_source_folder]/[file_name].parquet`. For example, `oss://sampledata/ingest/TableName.01.parquet`.
+        -   When importing multiple files, enter the source file URI and name in the following format `oss://[bucket_name]/[data_source_folder]/`. For example, `oss://sampledata/ingest/`.
+    -   **Credential**: you can use an AccessKey pair to access your bucket. For more information, see [Configure Alibaba Cloud Object Storage Service (OSS) access](/tidb-cloud/serverless-external-storage.md#configure-alibaba-cloud-object-storage-service-oss-access).
 
-4.  **[接続]**をクリックします。
+4.  Click **Next**.
 
-5.  **[宛先]**セクションで、ターゲット データベースとテーブルを選択します。
+5.  In the **Destination Mapping** section, specify how source files are mapped to target tables.
 
-    複数のファイルをインポートする場合、 **「詳細設定」** &gt; **「マッピング設定」**を使用して、各ターゲットテーブルとそれに対応するParquetファイルに対してカスタムマッピングルールを定義できます。その後、データソースファイルは指定されたカスタムマッピングルールを使用して再スキャンされます。
+    When a directory is specified in **Source Files URI**, the **Use <a href="/tidb-cloud/naming-conventions-for-data-import.md">File naming conventions</a> for automatic mapping** option is selected by default.
 
-    ソースファイルのURIと名前を**「ソースファイルのURIと名前」**に入力する際は、必ず次の形式`oss://[bucket_name]/[data_source_folder]/[file_name].parquet`に従ってください。例えば、 `oss://sampledata/ingest/TableName.01.parquet` 。
-
-    ソースファイルの一致にはワイルドカードも使用できます。例:
-
-    -   `oss://[bucket_name]/[data_source_folder]/my-data?.parquet` : そのフォルダー内の`my-data`で始まり、その後に 1 文字 ( `my-data1.parquet`や`my-data2.parquet`など) が続くすべての Parquet ファイルが同じターゲット テーブルにインポートされます。
-
-    -   `oss://[bucket_name]/[data_source_folder]/my-data*.parquet` : フォルダー内の`my-data`で始まるすべての Parquet ファイルが同じターゲット テーブルにインポートされます。
-
-    サポートされているのは`?`と`*`のみであることに注意してください。
-
-    > **注記：**
+    > **Note:**
     >
-    > URI にはデータ ソース フォルダーが含まれている必要があります。
+    > When a single file is specified in **Source Files URI**, the **Use <a href="/tidb-cloud/naming-conventions-for-data-import.md">File naming conventions</a> for automatic mapping** option is not displayed, and TiDB Cloud automatically populates the **Source** field with the file name. In this case, you only need to select the target database and table for data import.
 
-6.  **[インポートの開始]を**クリックします。
+    -   To let TiDB Cloud automatically map all source files that follow the [File naming conventions](/tidb-cloud/naming-conventions-for-data-import.md) to their corresponding tables, keep this option selected and select **Parquet** as the data format.
 
-7.  インポートの進行状況に**「完了」と**表示されたら、インポートされたテーブルを確認します。
+    -   To manually configure the mapping rules to associate your source Parquet files with the target database and table, unselect this option, and then fill in the following fields:
+
+        -   **Source**: enter the file name pattern in the `[file_name].parquet` format. For example: `TableName.01.parquet`. You can also use wildcards to match multiple files. Only `*` and `?` wildcards are supported.
+
+            -   `my-data?.parquet`: matches all Parquet files that start with `my-data` followed by a single character, such as `my-data1.parquet` and `my-data2.parquet`.
+            -   `my-data*.parquet`: matches all Parquet files that start with `my-data`, such as `my-data-2023.parquet` and `my-data-final.parquet`.
+
+        -   **Target Database** and **Target Table**: select the target database and table to import the data to.
+
+6.  Click **Next**. TiDB Cloud scans the source files accordingly.
+
+7.  Review the scan results, check the data files found and corresponding target tables, and then click **Start Import**.
+
+8.  When the import progress shows **Completed**, check the imported tables.
 
 </div>
 
 </SimpleTab>
 
-インポート タスクを実行するときに、サポートされていない変換または無効な変換が検出されると、 TiDB Cloud Serverless はインポート ジョブを自動的に終了し、インポート エラーを報告します。
+When you run an import task, if any unsupported or invalid conversions are detected, TiDB Cloud Serverless terminates the import job automatically and reports an importing error.
 
-インポート エラーが発生した場合は、次の手順を実行します。
+If you get an importing error, do the following:
 
-1.  部分的にインポートされたテーブルを削除します。
+1.  Drop the partially imported table.
 
-2.  テーブルスキーマファイルを確認してください。エラーがある場合は、テーブルスキーマファイルを修正してください。
+2.  Check the table schema file. If there are any errors, correct the table schema file.
 
-3.  Parquet ファイル内のデータ型を確認します。
+3.  Check the data types in the Parquet files.
 
-    Parquet ファイルにサポートされていないデータ型 (たとえば、 `NEST STRUCT` 、 `ARRAY` 、 `MAP` ) が含まれている場合は、 [サポートされているデータ型](#supported-data-types) (たとえば、 `STRING` ) を使用して Parquet ファイルを再生成する必要があります。
+    If the Parquet files contain any unsupported data types (for example, `NEST STRUCT`, `ARRAY`, or `MAP`), you need to regenerate the Parquet files using [supported data types](#supported-data-types) (for example, `STRING`).
 
-4.  インポートタスクをもう一度試してください。
+4.  Try the import task again.
 
-## サポートされているデータ型 {#supported-data-types}
+## Supported data types {#supported-data-types}
 
-次の表は、TiDB Cloud Serverless にインポートできるサポートされている Parquet データ型を示しています。
+The following table lists the supported Parquet data types that can be imported to TiDB Cloud Serverless.
 
-| 寄木細工のプリミティブタイプ | Parquet論理型    | TiDBまたはMySQLの型                                                                                                                                                      |
-| -------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ダブル            | ダブル           | ダブル<br/>フロート                                                                                                                                                        |
-| 固定長バイト配列(9)    | 10進数(20,0)    | BIGINT 符号なし                                                                                                                                                         |
-| 固定長バイト配列(N)    | DECIMAL(p,s)  | 小数点<br/>数値                                                                                                                                                          |
-| INT32          | DECIMAL(p,s)  | 小数点<br/>数値                                                                                                                                                          |
-| INT32          | 該当なし          | INT<br/>ミディアムミント<br/>年                                                                                                                                              |
-| INT64          | DECIMAL(p,s)  | 小数点<br/>数値                                                                                                                                                          |
-| INT64          | 該当なし          | ビッグイント<br/>符号なし整数<br/>ミディアムミント 未署名                                                                                                                                  |
-| INT64          | タイムスタンプ_マイクロ秒 | 日時<br/>タイムスタンプ                                                                                                                                                      |
-| バイト配列          | 該当なし          | バイナリ<br/>少し<br/>ブロブ<br/>チャー<br/>ラインストリング<br/>ロングブロブ<br/>ミディアムブロブ<br/>マルチラインストリング<br/>タイニーブロブ<br/>VARBINARY                                                          |
-| バイト配列          | 弦             | 列挙型<br/>日付<br/>小数点<br/>幾何学<br/>ジオメトリコレクション<br/>JSON<br/>長文<br/>中テキスト<br/>マルチポイント<br/>マルチポリゴン<br/>数値<br/>ポイント<br/>ポリゴン<br/>セット<br/>TEXT<br/>時間<br/>小さなテキスト<br/>可変長文字 |
-| スモールイント        | 該当なし          | INT32                                                                                                                                                               |
-| SMALLINT 符号なし  | 該当なし          | INT32                                                                                                                                                               |
-| タイニーイント        | 該当なし          | INT32                                                                                                                                                               |
-| TINYINT 符号なし   | 該当なし          | INT32                                                                                                                                                               |
+| Parquet Primitive Type  | Parquet Logical Type | Types in TiDB or MySQL                                                                                                                                                                                                  |
+| ----------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| DOUBLE                  | DOUBLE               | DOUBLE<br/>FLOAT                                                                                                                                                                                                        |
+| FIXED_LEN_BYTE_ARRAY(9) | DECIMAL(20,0)        | BIGINT UNSIGNED                                                                                                                                                                                                         |
+| FIXED_LEN_BYTE_ARRAY(N) | DECIMAL(p,s)         | DECIMAL<br/>NUMERIC                                                                                                                                                                                                     |
+| INT32                   | DECIMAL(p,s)         | DECIMAL<br/>NUMERIC                                                                                                                                                                                                     |
+| INT32                   | N/A                  | INT<br/>MEDIUMINT<br/>YEAR                                                                                                                                                                                              |
+| INT64                   | DECIMAL(p,s)         | DECIMAL<br/>NUMERIC                                                                                                                                                                                                     |
+| INT64                   | N/A                  | BIGINT<br/>INT UNSIGNED<br/>MEDIUMINT UNSIGNED                                                                                                                                                                          |
+| INT64                   | TIMESTAMP_MICROS     | DATETIME<br/>TIMESTAMP                                                                                                                                                                                                  |
+| BYTE_ARRAY              | N/A                  | BINARY<br/>BIT<br/>BLOB<br/>CHAR<br/>LINESTRING<br/>LONGBLOB<br/>MEDIUMBLOB<br/>MULTILINESTRING<br/>TINYBLOB<br/>VARBINARY                                                                                              |
+| BYTE_ARRAY              | STRING               | ENUM<br/>DATE<br/>DECIMAL<br/>GEOMETRY<br/>GEOMETRYCOLLECTION<br/>JSON<br/>LONGTEXT<br/>MEDIUMTEXT<br/>MULTIPOINT<br/>MULTIPOLYGON<br/>NUMERIC<br/>POINT<br/>POLYGON<br/>SET<br/>TEXT<br/>TIME<br/>TINYTEXT<br/>VARCHAR |
+| SMALLINT                | N/A                  | INT32                                                                                                                                                                                                                   |
+| SMALLINT UNSIGNED       | N/A                  | INT32                                                                                                                                                                                                                   |
+| TINYINT                 | N/A                  | INT32                                                                                                                                                                                                                   |
+| TINYINT UNSIGNED        | N/A                  | INT32                                                                                                                                                                                                                   |
 
-## トラブルシューティング {#troubleshooting}
+## Troubleshooting {#troubleshooting}
 
-### データのインポート中に警告を解決する {#resolve-warnings-during-data-import}
+### Resolve warnings during data import {#resolve-warnings-during-data-import}
 
-**[インポートの開始]**をクリックした後、 `can't find the corresponding source files`などの警告メッセージが表示された場合は、正しいソース ファイルを指定するか、 [データインポートの命名規則](/tidb-cloud/naming-conventions-for-data-import.md)に従って既存のファイルの名前を変更するか、 **[詳細設定]**を使用して変更を加えることで、この問題を解決します。
+After clicking **Start Import**, if you see a warning message such as `can't find the corresponding source files`, resolve this by providing the correct source file, renaming the existing one according to [Naming Conventions for Data Import](/tidb-cloud/naming-conventions-for-data-import.md), or using **Advanced Settings** to make changes.
 
-これらの問題を解決した後、データを再度インポートする必要があります。
+After resolving these issues, you need to import the data again.
 
-### インポートされたテーブルに行が 0 行あります {#zero-rows-in-the-imported-tables}
+### Zero rows in the imported tables {#zero-rows-in-the-imported-tables}
 
-インポートの進行状況が**「完了」**と表示されたら、インポートされたテーブルを確認してください。行数が0の場合、入力したバケットURIに一致するデータファイルが存在しないことを意味します。この場合、正しいソースファイルを指定するか、 [データインポートの命名規則](/tidb-cloud/naming-conventions-for-data-import.md)に従って既存のファイルの名前を変更するか、**詳細設定**を使用して変更を加えることで問題を解決してください。その後、該当するテーブルを再度インポートしてください。
+After the import progress shows **Completed**, check the imported tables. If the number of rows is zero, it means no data files matched the Bucket URI that you entered. In this case, resolve this issue by providing the correct source file, renaming the existing one according to [Naming Conventions for Data Import](/tidb-cloud/naming-conventions-for-data-import.md), or using **Advanced Settings** to make changes. After that, import those tables again.
