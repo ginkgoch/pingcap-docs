@@ -74,7 +74,7 @@ Connect to your TiDB cluster depending on the TiDB deployment option you've sele
 <SimpleTab>
 <div label="{{{ .starter }}}">
 
-1.  Navigate to the [**Clusters**](https://tidbcloud.com/project/clusters) page, and then click the name of your target cluster to go to its overview page.
+1.  Navigate to the [**Clusters**](https://%7B%7B%7B.console-url%7D%7D%7D/project/clusters) page, and then click the name of your target cluster to go to its overview page.
 
 2.  Click **Connect** in the upper-right corner. A connection dialog is displayed.
 
