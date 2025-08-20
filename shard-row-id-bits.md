@@ -1,35 +1,51 @@
 ---
 title: SHARD_ROW_ID_BITS
-summary: SHARD_ROW_ID_BITS 属性について学習します。
+summary: Learn the SHARD_ROW_ID_BITS attribute.
 ---
 
-# シャード行IDビット {#shard-row-id-bits}
+# SHARD_ROW_ID_BITS {#shard-row-id-bits}
 
-このドキュメントでは、暗黙の`_tidb_rowid`シャードされた後のシャードのビット数を設定するために使用される`SHARD_ROW_ID_BITS`テーブル属性について説明します。
+This document introduces the `SHARD_ROW_ID_BITS` table attribute, which is used to set the number of bits of the shards after the implicit `_tidb_rowid` is sharded.
 
-## コンセプト {#concept}
+## Concept {#concept}
 
-クラスター化されていない主キーを持つテーブル、または主キーのないテーブルの場合、TiDB は暗黙的な自動増分行 ID を使用します。 `INSERT`操作が大量に実行されると、データは単一のリージョンに書き込まれ、書き込みホットスポットが発生します。
+For the tables with a non-clustered primary key or no primary key, TiDB uses an implicit auto-increment row ID. When a large number of `INSERT` operations are performed, the data is written into a single Region, causing a write hot spot.
 
-ホットスポットの問題を軽減するには、 `SHARD_ROW_ID_BITS`設定します。行 ID が分散され、データが複数の異なるリージョンに書き込まれます。
+To mitigate the hot spot issue, you can configure `SHARD_ROW_ID_BITS`. The row IDs are scattered and the data are written into multiple different Regions.
 
--   `SHARD_ROW_ID_BITS = 4` 16個の破片を示す
--   `SHARD_ROW_ID_BITS = 6` 64個の破片を示す
--   `SHARD_ROW_ID_BITS = 0`デフォルトの1シャードを示します
+-   `SHARD_ROW_ID_BITS = 4` indicates 16 shards
+-   `SHARD_ROW_ID_BITS = 6` indicates 64 shards
+-   `SHARD_ROW_ID_BITS = 0` indicates the default 1 shard
+
+When you set `SHARD_ROW_ID_BITS = S`, the structure of `_tidb_rowid` is as follows:
+
+| Sign bit | Shard bits | Auto-increment bits |
+| -------- | ---------- | ------------------- |
+| 1 bit    | `S` bits   | `63-S` bits         |
+
+-   The values of the auto-increment bits are stored in TiKV and allocated sequentially. Each time a value is allocated, the next value is incremented by 1. The auto-increment bits ensure that the column values of `_tidb_rowid` are unique globally. When the value of the auto-increment bits is exhausted (that is, when the maximum value is reached), subsequent automatic allocations fail with the error `Failed to read auto-increment value from storage engine`.
+-   The value range of `_tidb_rowid`: the maximum number of bits for the final generated value = shard bits + auto-increment bits, so the maximum value is `(2^63)-1`.
+
+> **Note:**
+>
+> Selection of shard bits (`S`):
+>
+> -   Because the total bits of `_tidb_rowid` is 64, the number of shard bits affects the number of auto-increment bits: when the number of shard bits increases, the number of auto-increment bits decreases, and vice versa. Therefore, you need to balance the randomness of the auto-increment values and the available auto-increment space.
+> -   The best practice is to set the shard bits to `log(2, x)`, where `x` is the number of TiKV nodes in the cluster. For example, if there are 16 TiKV nodes in a TiDB cluster, it is recommended to set the shard bits to `log(2, 16)`, which equals `4`. After all Regions are evenly scheduled to each TiKV node, the load of bulk writes can be evenly distributed to different TiKV nodes to maximize resource utilization.
 
 <CustomContent platform="tidb">
 
-使用方法の詳細については[ホットスポットの問題のトラブルシューティングガイド](/troubleshoot-hot-spot-issues.md#use-shard_row_id_bits-to-process-hotspots)参照してください。
+For details on the usage, see [the Troubleshoot Hotspot Issues guide](/troubleshoot-hot-spot-issues.md#use-shard_row_id_bits-to-process-hotspots).
 
 </CustomContent>
 
 <CustomContent platform="tidb-cloud">
 
-使用方法の詳細については[ホットスポットの問題のトラブルシューティングガイド](https://docs.pingcap.com/tidb/stable/troubleshoot-hot-spot-issues#use-shard_row_id_bits-to-process-hotspots)参照してください。
+For details on the usage, see [the Troubleshoot Hotspot Issues guide](https://docs.pingcap.com/tidb/stable/troubleshoot-hot-spot-issues#use-shard_row_id_bits-to-process-hotspots).
 
 </CustomContent>
 
-## 例 {#examples}
+## Examples {#examples}
 
 ```sql
 CREATE TABLE t (
