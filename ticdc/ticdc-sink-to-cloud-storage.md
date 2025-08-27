@@ -1,18 +1,18 @@
 ---
 title: Replicate Data to Storage Services
-summary: TiCDC を使用してデータをstorageサービスに複製する方法と、複製されたデータのstorageパスについて学習します。
+summary: Learn how to replicate data to storage services using TiCDC, and learn about the storage path of the replicated data.
 ---
 
-# ストレージサービスへのデータの複製 {#replicate-data-to-storage-services}
+# Replicate Data to Storage Services {#replicate-data-to-storage-services}
 
-TiDB v6.5.0以降、TiCDCはAmazon S3、GCS、Azure Blob Storage、NFSなどのstorageサービスへの行変更イベントの保存をサポートします。本ドキュメントでは、TiCDCを使用してこれらのstorageサービスに増分データをレプリケートするチェンジフィードの作成方法と、データの保存方法について説明します。本ドキュメントの構成は以下のとおりです。
+Starting from TiDB v6.5.0, TiCDC supports saving row change events to storage services, including Amazon S3, GCS, Azure Blob Storage, and NFS. This document describes how to create a changefeed that replicates incremental data to such storage services using TiCDC, and how data is stored. The organization of this document is as follows:
 
--   [storageサービスにデータを複製する方法](#replicate-change-data-to-storage-services) 。
--   [storageサービスにデータを保存する方法](#storage-path-structure) 。
+-   [How to replicate data to storage services](#replicate-change-data-to-storage-services).
+-   [How data is stored in storage services](#storage-path-structure).
 
-## 変更データをstorageサービスに複製する {#replicate-change-data-to-storage-services}
+## Replicate change data to storage services {#replicate-change-data-to-storage-services}
 
-次のコマンドを実行して、changefeed タスクを作成します。
+Run the following command to create a changefeed task:
 
 ```shell
 cdc cli changefeed create \
@@ -21,191 +21,192 @@ cdc cli changefeed create \
     --changefeed-id="simple-replication-task"
 ```
 
-出力は次のようになります。
+The output is as follows:
 
 ```shell
-Info: {"upstream_id":7171388873935111376,"namespace":"default","id":"simple-replication-task","sink_uri":"s3://logbucket/storage_test?protocol=canal-json","create_time":"2024-12-26T18:52:05.566016967+08:00","start_ts":437706850431664129,"engine":"unified","config":{"case_sensitive":false,"enable_old_value":true,"force_replicate":false,"ignore_ineligible_table":false,"check_gc_safe_point":true,"enable_sync_point":false,"sync_point_interval":600000000000,"sync_point_retention":86400000000000,"filter":{"rules":["*.*"],"event_filters":null},"mounter":{"worker_num":16},"sink":{"protocol":"canal-json","schema_registry":"","csv":{"delimiter":",","quote":"\"","null":"\\N","include_commit_ts":false},"column_selectors":null,"transaction_atomicity":"none","encoder_concurrency":16,"terminator":"\r\n","date_separator":"none","enable_partition_separator":false},"consistent":{"level":"none","max_log_size":64,"flush_interval":2000,"storage":""}},"state":"normal","creator_version":"v8.1.2"}
+Info: {"upstream_id":7171388873935111376,"namespace":"default","id":"simple-replication-task","sink_uri":"s3://logbucket/storage_test?protocol=canal-json","create_time":"2024-12-26T18:52:05.566016967+08:00","start_ts":437706850431664129,"engine":"unified","config":{"case_sensitive":false,"force_replicate":false,"ignore_ineligible_table":false,"check_gc_safe_point":true,"enable_sync_point":false,"sync_point_interval":600000000000,"sync_point_retention":86400000000000,"filter":{"rules":["*.*"],"event_filters":null},"mounter":{"worker_num":16},"sink":{"protocol":"canal-json","schema_registry":"","csv":{"delimiter":",","quote":"\"","null":"\\N","include_commit_ts":false},"column_selectors":null,"transaction_atomicity":"none","encoder_concurrency":16,"terminator":"\r\n","date_separator":"none","enable_partition_separator":false},"consistent":{"level":"none","max_log_size":64,"flush_interval":2000,"storage":""}},"state":"normal","creator_version":"v8.1.2"}
 ```
 
--   `--server` : TiCDC クラスター内の任意の TiCDCサーバーのアドレス。
--   `--changefeed-id` : チェンジフィードのID。形式は正規表現`^[a-zA-Z0-9]+(\-[a-zA-Z0-9]+)*$`に一致する必要があります。このIDが指定されていない場合、TiCDCは自動的にUUID（バージョン4形式）をIDとして生成します。
--   `--sink-uri` : チェンジフィードのダウンストリームアドレス。詳細は[シンクURIを構成する](#configure-sink-uri)参照。
--   `--start-ts` : チェンジフィードの開始TSO。TiCDCはこのTSOからデータのプルを開始します。デフォルト値は現在時刻です。
--   `--target-ts` : チェンジフィードの終了TSO。TiCDCはこのTSOまでデータのプルを停止します。デフォルト値は空で、TiCDCはデータのプルを自動的に停止しません。
--   `--config` : チェンジフィードの設定ファイル。詳細は[TiCDC チェンジフィード構成パラメータ](/ticdc/ticdc-changefeed-config.md)参照してください。
+-   `--server`: The address of any TiCDC server in the TiCDC cluster.
+-   `--changefeed-id`: The ID of the changefeed. The format must match the `^[a-zA-Z0-9]+(\-[a-zA-Z0-9]+)*$` regular expression. If this ID is not specified, TiCDC automatically generates a UUID (the version 4 format) as the ID.
+-   `--sink-uri`: The downstream address of the changefeed. For details, see [Configure sink URI](#configure-sink-uri).
+-   `--start-ts`: The starting TSO of the changefeed. TiCDC starts pulling data from this TSO. The default value is the current time.
+-   `--target-ts`: The ending TSO of the changefeed. TiCDC stops pulling data until this TSO. The default value is empty, which means that TiCDC does not automatically stop pulling data.
+-   `--config`: The configuration file of the changefeed. For details, see [TiCDC changefeed configuration parameters](/ticdc/ticdc-changefeed-config.md).
 
-## シンクURIを構成する {#configure-sink-uri}
+## Configure sink URI {#configure-sink-uri}
 
-このセクションでは、Amazon S3、GCS、Azure Blob Storage、NFSなどのstorageサービスのシンクURIを設定する方法について説明します。シンクURIは、TiCDCターゲットシステムの接続情報を指定するために使用されます。形式は次のとおりです。
+This section describes how to configure Sink URI for storage services, including Amazon S3, GCS, Azure Blob Storage, and NFS. Sink URI is used to specify the connection information of the TiCDC target system. The format is as follows:
 
 ```shell
 [scheme]://[host]/[path]?[query_parameters]
 ```
 
-URI の`[query_parameters]`には、次のパラメータを設定できます。
+For `[query_parameters]` in the URI, the following parameters can be configured:
 
-| パラメータ                   | 説明                                                                                                                                                                                                                                   | デフォルト値     | 値の範囲                   |
-| :---------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :--------- | :--------------------- |
-| `worker-count`          | ダウンストリームのクラウドstorageにデータの変更を保存するための同時実行性。                                                                                                                                                                                            | `16`       | `[1, 512]`             |
-| `flush-interval`        | ダウンストリームのクラウドstorageにデータの変更を保存する間隔。                                                                                                                                                                                                  | `5s`       | `[2s, 10m]`            |
-| `file-size`             | バイト数がこのパラメータの値を超えると、データ変更ファイルはクラウドstorageに保存されます。                                                                                                                                                                                    | `67108864` | `[1048576, 536870912]` |
-| `protocol`              | ダウンストリームに送信されるメッセージのプロトコル形式。                                                                                                                                                                                                         | 該当なし       | `canal-json`と`csv`     |
-| `enable-tidb-extension` | `protocol` `canal-json`に設定され、 `enable-tidb-extension` `true`に設定されている場合、 TiCDC は[ウォーターマークイベント](/ticdc/ticdc-canal-json.md#watermark-event)送信し、 [TiDB拡張フィールド](/ticdc/ticdc-canal-json.md#tidb-extension-field) Canal-JSON メッセージに追加します。 | `false`    | `false`と`true`         |
+| Parameter               | Description                                                                                                                                                                                                                                                                  | Default value | Value range            |
+| :---------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------ | :--------------------- |
+| `worker-count`          | Concurrency for saving data changes to cloud storage in the downstream.                                                                                                                                                                                                      | `16`          | `[1, 512]`             |
+| `flush-interval`        | Interval for saving data changes to cloud storage in the downstream.                                                                                                                                                                                                         | `5s`          | `[2s, 10m]`            |
+| `file-size`             | A data change file is stored to cloud storage if the number of bytes exceeds the value of this parameter.                                                                                                                                                                    | `67108864`    | `[1048576, 536870912]` |
+| `protocol`              | The protocol format of the messages sent to the downstream.                                                                                                                                                                                                                  | N/A           | `canal-json` and `csv` |
+| `enable-tidb-extension` | When `protocol` is set to `canal-json` and `enable-tidb-extension` is set to `true`, TiCDC sends [WATERMARK events](/ticdc/ticdc-canal-json.md#watermark-event) and adds the [TiDB extension field](/ticdc/ticdc-canal-json.md#tidb-extension-field) to Canal-JSON messages. | `false`       | `false` and `true`     |
 
-> **注記：**
+> **Note:**
 >
-> データ変更ファイルは、 `flush-interval`または`file-size`いずれかが要件を満たしている場合に下流に保存されます。5 `protocol`パラメータは必須です。TiCDCが変更フィードの作成時にこのパラメータを受け取らない場合は、 `CDC:ErrSinkUnknownProtocol`エラーが返されます。
+> Data change files are saved to the downstream when either `flush-interval` or `file-size` meets the requirements.
+> The `protocol` parameter is mandatory. If TiCDC does not receive this parameter when creating a changefeed, the `CDC:ErrSinkUnknownProtocol` error is returned.
 
-### 外部storageのシンクURIを構成する {#configure-sink-uri-for-external-storage}
+### Configure sink URI for external storage {#configure-sink-uri-for-external-storage}
 
-クラウドstorageシステムにデータを保存する場合、クラウドサービスプロバイダーに応じて異なる認証パラメータを設定する必要があります。このセクションでは、Amazon S3、Google Cloud Storage（GCS）、Azure Blob Storage を使用する場合の認証方法と、それぞれのストレージstorageにアクセスするためのアカウントの設定方法について説明します。
+When storing data in a cloud storage system, you need to set different authentication parameters depending on the cloud service provider. This section describes the authentication methods when using Amazon S3, Google Cloud Storage (GCS), and Azure Blob Storage, and how to configure accounts to access the corresponding storage services.
 
 <SimpleTab groupId="storage">
 <div label="Amazon S3" value="amazon">
 
-以下は Amazon S3 の設定例です。
+The following is an example configuration for Amazon S3:
 
 ```shell
 --sink-uri="s3://bucket/prefix?protocol=canal-json"
 ```
 
-データを複製する前に、Amazon S3 のディレクトリに適切なアクセス権限を設定する必要があります。
+Before replicating data, you need to set appropriate access permissions for the directory in Amazon S3:
 
--   TiCDC に必要な最小限`s3:PutObject`権限: `s3:ListBucket` 、および`s3:GetObject` 。
--   changefeed 構成項目`sink.cloud-storage-config.flush-concurrency` 1 より大きい場合、つまり単一ファイルの並列アップロードが有効になっている場合は、 [リストパーツ](https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListParts.html)に関連する権限を追加する必要があります。
+-   Minimum permissions required by TiCDC: `s3:ListBucket`, `s3:PutObject`, and `s3:GetObject`.
+-   If the changefeed configuration item `sink.cloud-storage-config.flush-concurrency` is greater than 1, which means parallel uploading of single files is enabled, you need to additionally add permissions related to [ListParts](https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListParts.html):
     -   `s3:AbortMultipartUpload`
     -   `s3:ListMultipartUploadParts`
     -   `s3:ListBucketMultipartUploads`
 
-レプリケーションデータstorageディレクトリを作成していない場合は、 [バケットを作成する](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html)を参照して指定リージョンに S3 バケットを作成してください。必要に応じて、 [フォルダを使用して Amazon S3 コンソールでオブジェクトを整理する](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-folder.html)を参照してバケット内にフォルダを作成することもできます。
+If you have not created a replication data storage directory, refer to [Create a bucket](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-bucket.html) to create an S3 bucket in the specified region. If necessary, you can also create a folder in the bucket by referring to [Organize objects in the Amazon S3 console by using folders](https://docs.aws.amazon.com/AmazonS3/latest/user-guide/create-folder.html).
 
-次の方法で Amazon S3 にアクセスできるようにアカウントを設定できます。
+You can configure an account to access Amazon S3 in the following ways:
 
--   方法1: アクセスキーを指定する
+-   Method 1: Specify the access key
 
-    アクセスキーとシークレットアクセスキーを指定した場合、それらに基づいて認証が行われます。URIでキーを指定する方法に加えて、以下の方法がサポートされています。
+    If you specify an access key and a secret access key, authentication is performed according to them. In addition to specifying the key in the URI, the following methods are supported:
 
-    -   TiCDC は環境変数`$AWS_ACCESS_KEY_ID`と`$AWS_SECRET_ACCESS_KEY`読み取ります。
-    -   TiCDC は環境変数`$AWS_ACCESS_KEY`と`$AWS_SECRET_KEY`読み取ります。
-    -   TiCDC は、 `$AWS_SHARED_CREDENTIALS_FILE`環境変数で指定されたパスにある共有資格情報ファイルを読み取ります。
-    -   TiCDC は`~/.aws/credentials`パスにある共有資格情報ファイルを読み取ります。
+    -   TiCDC reads the `$AWS_ACCESS_KEY_ID` and `$AWS_SECRET_ACCESS_KEY` environment variables.
+    -   TiCDC reads the `$AWS_ACCESS_KEY` and `$AWS_SECRET_KEY` environment variables.
+    -   TiCDC reads the shared credentials file in the path specified by the `$AWS_SHARED_CREDENTIALS_FILE` environment variable.
+    -   TiCDC reads the shared credentials file in the `~/.aws/credentials` path.
 
--   方法2: IAMロールに基づくアクセス
+-   Method 2: Access based on an IAM role
 
-    TiCDCサーバーを実行している EC2 インスタンスに[Amazon S3 にアクセスするための権限が設定されたIAMロール](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html)関連付けます。セットアップが成功すると、TiCDC は追加設定なしで Amazon S3 内の対応するディレクトリに直接アクセスできるようになります。
+    Associate an [IAM role with configured permissions to access Amazon S3](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_use_switch-role-ec2.html) to the EC2 instance running the TiCDC server. After successful setup, TiCDC can directly access the corresponding directories in Amazon S3 without additional settings.
 
 </div>
 <div label="GCS" value="gcs">
 
-以下は GCS の構成例です。
+The following is an example configuration for GCS:
 
 ```shell
 --sink-uri="gcs://bucket/prefix?protocol=canal-json"
 ```
 
-GCSへのアクセスに使用するアカウントは、アクセスキーを指定することで設定できます。認証は指定された`credentials-file`に基づいて行われます。URIでキーを指定することに加えて、以下の方法がサポートされています。
+You can configure the account used to access GCS by specifying an access key. Authentication is performed according to the specified `credentials-file`. In addition to specifying the key in the URI, the following methods are supported:
 
--   TiCDC は、 `$GOOGLE_APPLICATION_CREDENTIALS`環境変数で指定されたパスにあるファイルを読み取ります。
--   TiCDC はファイル`~/.config/gcloud/application_default_credentials.json`を読み取ります。
--   TiCDC は、クラスターが GCE または GAE で実行されているときに、メタデータサーバーから資格情報を取得します。
+-   TiCDC reads the file in the path specified by the `$GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+-   TiCDC reads the file `~/.config/gcloud/application_default_credentials.json`.
+-   TiCDC obtains credentials from the metadata server when the cluster is running in GCE or GAE.
 
 </div>
 <div label="Azure Blob Storage" value="azure">
 
-以下は、Azure Blob Storage の構成例です。
+The following is an example configuration for Azure Blob Storage:
 
 ```shell
 --sink-uri="azure://bucket/prefix?protocol=canal-json"
 ```
 
-次の方法で、Azure Blob Storage にアクセスするようにアカウントを構成できます。
+You can configure an account to access Azure Blob Storage in the following ways:
 
--   方法1: 共有アクセス署名を指定する
+-   Method 1: Specify a shared access signature
 
-    URIに`account-name`と`sas-token`設定した場合、このパラメーターで指定されたstorageアカウント名と共有アクセス署名トークンが使用されます。共有アクセス署名トークンには`&`文字が含まれているため、URIに追加する前に`%26`としてエンコードする必要があります。パーセントエンコードを使用して、 `sas-token`全体を直接エンコードすることもできます。
+    If you configure `account-name` and `sas-token` in the URI, the storage account name and shared access signature token specified by this parameter are used. Because the shared access signature token has the `&` character, you need to encode it as `%26` before adding it to the URI. You can also directly encode the entire `sas-token` using percent-encoding.
 
--   方法2: アクセスキーを指定する
+-   Method 2: Specify the access key
 
-    URIで`account-name`と`account-key`設定した場合、このパラメータで指定されたstorageアカウント名とキーが使用されます。URIでキーファイルを指定するだけでなく、TiCDCは環境変数`$AZURE_STORAGE_KEY`からキーを読み取ることもできます。
+    If you configure `account-name` and `account-key` in the URI, the storage account name and key specified by this parameter are used. In addition to specifying the key file in the URI, TiCDC can also read the key from the environment variable `$AZURE_STORAGE_KEY`.
 
--   方法3: Azure ADを使用してバックアップを復元する
+-   Method 3: Use Azure AD to restore the backup
 
-    環境変数`$AZURE_CLIENT_ID` `$AZURE_TENANT_ID`設定し`$AZURE_CLIENT_SECRET` 。
+    Configure the environment variables `$AZURE_CLIENT_ID`, `$AZURE_TENANT_ID`, and `$AZURE_CLIENT_SECRET`.
 
 </div>
 </SimpleTab>
 
-> **ヒント：**
+> **Tip:**
 >
-> TiCDC における Amazon S3、GCS、Azure Blob Storage の URI パラメータの詳細については、 [外部ストレージサービスのURI形式](/external-storage-uri.md)参照してください。
+> For more information about the URI parameters of Amazon S3, GCS, and Azure Blob Storage in TiCDC, see [URI Formats of External Storage Services](/external-storage-uri.md).
 
-### NFSのシンクURIを構成する {#configure-sink-uri-for-nfs}
+### Configure sink URI for NFS {#configure-sink-uri-for-nfs}
 
-以下は NFS の構成例です。
+The following is an example configuration for NFS:
 
 ```shell
 --sink-uri="file:///my-directory/prefix?protocol=canal-json"
 ```
 
-## ストレージパス構造 {#storage-path-structure}
+## Storage path structure {#storage-path-structure}
 
-このセクションでは、データ変更レコード、メタデータ、および DDL イベントのstorageパス構造について説明します。
+This section describes the storage path structure of data change records, metadata, and DDL events.
 
-### データ変更記録 {#data-change-records}
+### Data change records {#data-change-records}
 
-データ変更レコードは次のパスに保存されます。
+Data change records are saved to the following path:
 
 ```shell
 {scheme}://{prefix}/{schema}/{table}/{table-version-separator}/{partition-separator}/{date-separator}/CDC{num}.{extension}
 ```
 
--   `scheme` :storageタイプを指定します (例: `s3` 、 `gcs` 、 `azure` 、 `file` 。
--   `prefix` : ユーザー定義の親ディレクトリを指定します (例: `s3:// **bucket/bbb/ccc**` 。
--   `schema` : スキーマ名を指定します (例: `s3://bucket/bbb/ccc/ **test**` 。
--   `table` : テーブル名を指定します (例: `s3://bucket/bbb/ccc/test/ **table1**` 。
--   `table-version-separator` : テーブルバージョンでパスを区切る区切り文字を指定します (例: `s3://bucket/bbb/ccc/test/table1/ **9999**` )。
--   `partition-separator` : テーブルパーティションによってパスを区切るセパレーターを指定します (例: `s3://bucket/bbb/ccc/test/table1/9999/ **20**` 。
--   `date-separator` : トランザクションのコミット日に基づいてファイルを分類します。デフォルト値は`day`です。値のオプションは次のとおりです。
-    -   `none` : `date-separator`なし。たとえば、バージョン`test.table1`が`9999`であるすべてのファイルは`s3://bucket/bbb/ccc/test/table1/9999`に保存されます。
-    -   `year` : 区切り文字はトランザクションコミット日の年です (例: `s3://bucket/bbb/ccc/test/table1/9999/ **2022**` 。
-    -   `month` : 区切り文字はトランザクションコミット日の年と月です。例: `s3://bucket/bbb/ccc/test/table1/9999/ **2022-01**` 。
-    -   `day` : 区切り文字はトランザクションコミット日の年、月、日です。例: `s3://bucket/bbb/ccc/test/table1/9999/ **2022-01-02**` 。
--   `num` : データの変更を記録したファイルのシリアル番号を保存します (例: `s3://bucket/bbb/ccc/test/table1/9999/2022-01-02/CDC **000005** .csv` 。
--   `extension` : ファイルの拡張子を指定します。TiDB v6.5.0 は CSV および Canal-JSON 形式をサポートしています。
+-   `scheme`: specifies the storage type, for example, `s3`, `gcs`, `azure`, or `file`.
+-   `prefix`: specifies the user-defined parent directory, for example, `s3://**bucket/bbb/ccc**`.
+-   `schema`: specifies the schema name, for example, `s3://bucket/bbb/ccc/**test**`.
+-   `table`: specifies the table name, for example, `s3://bucket/bbb/ccc/test/**table1**`.
+-   `table-version-separator`: specifies the separator that separates the path by the table version, for example, `s3://bucket/bbb/ccc/test/table1/**9999**`.
+-   `partition-separator`: specifies the separator that separates the path by the table partition, for example, `s3://bucket/bbb/ccc/test/table1/9999/**20**`.
+-   `date-separator`: classifies the files by the transaction commit date. The default value is `day`. Value options are:
+    -   `none`: no `date-separator`. For example, all files with `test.table1` version being `9999` are saved to `s3://bucket/bbb/ccc/test/table1/9999`.
+    -   `year`: the separator is the year of the transaction commit date, for example, `s3://bucket/bbb/ccc/test/table1/9999/**2022**`.
+    -   `month`: the separator is the year and month of the transaction commit date, for example, `s3://bucket/bbb/ccc/test/table1/9999/**2022-01**`.
+    -   `day`: the separator is the year, month, and day of the transaction commit date, for example, `s3://bucket/bbb/ccc/test/table1/9999/**2022-01-02**`.
+-   `num`: saves the serial number of the file that records the data change, for example, `s3://bucket/bbb/ccc/test/table1/9999/2022-01-02/CDC**000005**.csv`.
+-   `extension`: specifies the extension of the file. TiDB v6.5.0 supports the CSV and Canal-JSON formats.
 
-> **注記：**
+> **Note:**
 >
-> テーブル バージョンは次のシナリオで変更されます。
+> The table version changes in the following scenarios:
 >
-> -   アップストリーム TiDB はテーブルに対して DDL 操作を実行します。
-> -   TiCDC はノード間でテーブルをスケジュールします。
-> -   テーブルが属する変更フィードが再開されます。
+> -   The upstream TiDB performs a DDL operation on the table.
+> -   TiCDC schedules the table across nodes.
+> -   The changefeed to which the table belongs restarts.
 >
-> テーブルバージョンの変更はテーブルスキーマの変更を意味するものではないことに注意してください。例えば、列にコメントを追加しても、スキーマファイルの内容は変更されません。
+> Note that the change of the table version does not mean the change of the table schema. For example, adding a comment to a column does not cause the schema file content to change.
 
-### インデックスファイル {#index-files}
+### Index files {#index-files}
 
-インデックスファイルは、書き込まれたデータが誤って上書きされるのを防ぐために使用されます。インデックスファイルは、データ変更レコードと同じパスに保存されます。
+An index file is used to prevent written data from being overwritten by mistake. It is stored in the same path as the data change records.
 
 ```shell
 {scheme}://{prefix}/{schema}/{table}/{table-version-separator}/{partition-separator}/{date-separator}/meta/CDC.index
 ```
 
-インデックスファイルには、現在のディレクトリで使用されている最大のファイル名が記録されます。例:
+The index file records the largest file name used in the current directory. For example:
 
     CDC000005.csv
 
-この例では、このディレクトリ内のファイル`CDC000001.csv`から`CDC000004.csv`使用中です。TiCDC クラスターでテーブルスケジューリングまたはノードの再起動が発生すると、新しいノードはインデックスファイルを読み取り、 `CDC000005.csv`使用中かどうかを判断します。使用中でない場合、新しいノードは`CDC000005.csv`からファイルに書き込みます。使用中の場合は`CDC000006.csv`から書き込みを開始し、他のノードによって書き込まれたデータの上書きを防ぎます。
+In this example, the files `CDC000001.csv` through `CDC000004.csv` in this directory are occupied. When a table scheduling or node restart occurs in the TiCDC cluster, the new node reads the index file and determines if `CDC000005.csv` is occupied. If it is not occupied, the new node writes the file starting from `CDC000005.csv`. If it is occupied, it starts writing from `CDC000006.csv`, which prevents overwriting data written by other nodes.
 
-### メタデータ {#metadata}
+### Metadata {#metadata}
 
-メタデータは次のパスに保存されます。
+Metadata is saved in the following path:
 
 ```shell
 {protocol}://{prefix}/metadata
 ```
 
-メタデータは JSON 形式のファイルです。例:
+Metadata is a JSON-formatted file, for example:
 
 ```json
 {
@@ -213,22 +214,22 @@ GCSへのアクセスに使用するアカウントは、アクセスキーを�
 }
 ```
 
--   `checkpoint-ts` : `commit-ts`が`checkpoint-ts`より小さいトランザクションは、ダウンストリームのターゲットstorageに書き込まれます。
+-   `checkpoint-ts`: Transactions with `commit-ts` smaller than `checkpoint-ts` are written to the target storage in the downstream.
 
-### DDLイベント {#ddl-events}
+### DDL events {#ddl-events}
 
-### テーブルレベルのDDLイベント {#ddl-events-at-the-table-level}
+### DDL events at the table level {#ddl-events-at-the-table-level}
 
-アップストリーム テーブルの DDL イベントによってテーブル バージョンが変更されると、TiCDC は自動的に次の処理を実行します。
+When a DDL event of an upstream table causes a table version change, TiCDC automatically does the following:
 
--   データ変更レコードを書き込むための新しいパスに切り替えます。例えば、バージョン`test.table1`が`441349361156227074`に変更されると、TiCDCはデータ変更レコードを書き込むためのパスを`s3://bucket/bbb/ccc/test/table1/441349361156227074/2022-01-02/`に変更します。
--   テーブル スキーマ情報を格納するために、次のパスにスキーマ ファイルを生成します。
+-   Switches to a new path to write data change records. For example, when the version of `test.table1` changes to `441349361156227074`, TiCDC changes to the `s3://bucket/bbb/ccc/test/table1/441349361156227074/2022-01-02/` path to write data change records.
+-   Generates a schema file in the following path to store the table schema information:
 
     ```shell
     {scheme}://{prefix}/{schema}/{table}/meta/schema_{table-version}_{hash}.json
     ```
 
-`schema_441349361156227074_3131721815.json`スキーマ ファイルを例にとると、このファイル内のテーブル スキーマ情報は次のようになります。
+Taking the `schema_441349361156227074_3131721815.json` schema file as an example, the table schema information in this file is as follows:
 
 ```json
 {
@@ -269,31 +270,31 @@ GCSへのアクセスに使用するアカウントは、アクセスキーを�
 }
 ```
 
--   `Table` : テーブル名。
--   `Schema` : スキーマ名。
--   `Version` :storageシンクのプロトコル バージョン。
--   `TableVersion` : テーブルバージョン。
--   `Query` : DDL ステートメント。
--   `Type` : DDL タイプ。
--   `TableColumns` : 1 つ以上のマップの配列。各マップはソース テーブル内の列を表します。
-    -   `ColumnName` :カラム名。
-    -   `ColumnType` :カラムの種類。詳細は[データ型](#data-type)参照してください。
-    -   `ColumnLength` :カラムの長さ。詳細は[データ型](#data-type)参照。
-    -   `ColumnPrecision` :カラムの精度。詳細は[データ型](#data-type)参照してください。
-    -   `ColumnScale` : 小数点以下の桁数（スケール）。詳細は[データ型](#data-type)参照。
-    -   `ColumnNullable` : このオプションの値が`true`の場合、列は NULL になることができます。
-    -   `ColumnIsPk` : このオプションの値が`true`の場合、列は主キーの一部になります。
--   `TableColumnsTotal` : `TableColumns`配列のサイズ。
+-   `Table`: Table name.
+-   `Schema`: Schema name.
+-   `Version`: Protocol version of the storage sink.
+-   `TableVersion`: Table version.
+-   `Query`: DDL statement.
+-   `Type`: DDL type.
+-   `TableColumns`: An array of one or more maps, each of which describes a column in the source table.
+    -   `ColumnName`: Column name.
+    -   `ColumnType`: Column type. For details, see [Data type](#data-type).
+    -   `ColumnLength`: Column length. For details, see [Data type](#data-type).
+    -   `ColumnPrecision`: Column precision. For details, see [Data type](#data-type).
+    -   `ColumnScale`: The number of digits following the decimal point (the scale). For details, see [Data type](#data-type).
+    -   `ColumnNullable`: The column can be NULL when the value of this option is `true`.
+    -   `ColumnIsPk`: The column is part of the primary key when the value of this option is `true`.
+-   `TableColumnsTotal`: The size of the `TableColumns` array.
 
-### データベースレベルのDDLイベント {#ddl-events-at-the-database-level}
+### DDL events at the database level {#ddl-events-at-the-database-level}
 
-アップストリーム データベースでデータベース レベルの DDL イベントが実行されると、TiCDC は次のパスにスキーマ ファイルを自動的に生成し、データベース スキーマ情報を格納します。
+When a database-level DDL event is performed in the upstream database, TiCDC automatically generates a schema file in the following path to store the database schema information:
 
 ```shell
 {scheme}://{prefix}/{schema}/meta/schema_{table-version}_{hash}.json
 ```
 
-`schema_441349361156227000_3131721815.json`スキーマ ファイルを例にとると、このファイル内のデータベース スキーマ情報は次のようになります。
+Taking the `schema_441349361156227000_3131721815.json` schema file as an example, the database schema information in this file is as follows:
 
 ```json
 {
@@ -308,18 +309,18 @@ GCSへのアクセスに使用するアカウントは、アクセスキーを�
 }
 ```
 
-### データ型 {#data-type}
+### Data type {#data-type}
 
-この節では、 `schema_{table-version}_{hash}.json`ファイル（以下、スキーマファイル）で使用されるデータ型について説明します。データ型は`T(M[, D])`として定義されています。詳細については[データ型](/data-type-overview.md)参照してください。
+This section describes the data types used in the `schema_{table-version}_{hash}.json` file (hereafter referred to as "schema file" in the following sections). The data types are defined as `T(M[, D])`. For details, see [Data Types](/data-type-overview.md).
 
-#### 整数型 {#integer-types}
+#### Integer types {#integer-types}
 
-TiDBの整数型は`IT[(M)] [UNSIGNED]`と定義され、
+Integer types in TiDB are defined as `IT[(M)] [UNSIGNED]`, where
 
--   `IT`は整数型で、 `TINYINT` 、 `SMALLINT` 、 `MEDIUMINT` 、 `INT` 、 `BIGINT` 、または`BIT`になります。
--   `M`はタイプの表示幅です。
+-   `IT` is the integer type, which can be `TINYINT`, `SMALLINT`, `MEDIUMINT`, `INT`, `BIGINT`, or `BIT`.
+-   `M` is the display width of the type.
 
-整数型はスキーマ ファイル内で次のように定義されます。
+Integer types are defined as follows in the schema file:
 
 ```json
 {
@@ -329,15 +330,15 @@ TiDBの整数型は`IT[(M)] [UNSIGNED]`と定義され、
 }
 ```
 
-#### 10進数型 {#decimal-types}
+#### Decimal types {#decimal-types}
 
-TiDBの10進数型は`DT[(M,D)][UNSIGNED]`と定義され、
+Decimal types in TiDB are defined as `DT[(M,D)][UNSIGNED]`, where
 
--   `DT`は浮動小数点型で、 `FLOAT` 、 `DOUBLE` 、 `DECIMAL` 、または`NUMERIC`になります。
--   `M`はデータ型の精度、つまり合計桁数です。
--   `D`は小数点以下の桁数です。
+-   `DT` is the floating-point type, which can be `FLOAT`, `DOUBLE`, `DECIMAL`, or `NUMERIC`.
+-   `M` is the precision of the data type, or the total number of digits.
+-   `D` is the number of digits following the decimal point.
 
-10 進型はスキーマ ファイルで次のように定義されます。
+Decimal types are defined as follows in the schema file:
 
 ```json
 {
@@ -348,13 +349,13 @@ TiDBの10進数型は`DT[(M,D)][UNSIGNED]`と定義され、
 }
 ```
 
-#### 日付と時刻の種類 {#date-and-time-types}
+#### Date and time types {#date-and-time-types}
 
-TiDBの日付型は`DT`と定義され、
+Date types in TiDB are defined as `DT`, where
 
--   `DT`は日付型で、 `DATE`または`YEAR`になります。
+-   `DT` is the date type, which can be `DATE` or `YEAR`.
 
-日付タイプはスキーマ ファイルで次のように定義されます。
+The date types are defined as follows in the schema file:
 
 ```json
 {
@@ -363,12 +364,12 @@ TiDBの日付型は`DT`と定義され、
 }
 ```
 
-TiDBの時間型は`TT[(M)]`と定義され、
+The time types in TiDB are defined as `TT[(M)]`, where
 
--   `TT`は時間のタイプで、 `TIME` 、 `DATETIME` 、または`TIMESTAMP`になります。
--   `M`は 0 から 6 までの範囲の秒の精度です。
+-   `TT` is the time type, which can be `TIME`, `DATETIME`, or `TIMESTAMP`.
+-   `M` is the precision of seconds in the range from 0 to 6.
 
-時間タイプはスキーマ ファイルで次のように定義されます。
+The time types are defined as follows in the schema file:
 
 ```json
 {
@@ -378,14 +379,14 @@ TiDBの時間型は`TT[(M)]`と定義され、
 }
 ```
 
-#### 文字列型 {#string-types}
+#### String types {#string-types}
 
-TiDBの文字列型は`ST[(M)]`として定義され、
+The string types in TiDB are defined as `ST[(M)]`, where
 
--   `ST`は文字列型で、 `CHAR` 、 `VARCHAR` 、 `TEXT` 、 `BINARY` 、 `BLOB` 、または`JSON`になります。
--   `M`は文字列の最大長です。
+-   `ST` is the string type, which can be `CHAR`, `VARCHAR`, `TEXT`, `BINARY`, `BLOB`, or `JSON`.
+-   `M` is the maximum length of the string.
 
-文字列型はスキーマ ファイル内で次のように定義されます。
+The string types are defined as follows in the schema file:
 
 ```json
 {
@@ -395,9 +396,9 @@ TiDBの文字列型は`ST[(M)]`として定義され、
 }
 ```
 
-#### 列挙型と集合型 {#enum-and-set-types}
+#### Enum and Set types {#enum-and-set-types}
 
-Enum 型と Set 型は、スキーマ ファイルで次のように定義されます。
+The Enum and Set types are defined as follows in the schema file:
 
 ```json
 {
